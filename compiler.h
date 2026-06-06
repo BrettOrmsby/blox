@@ -1,6 +1,7 @@
 #ifndef compiler_h
 #define compiler_h
+#include "vm.h"
 
-void compile(const char* source);
+bool compile(const char* source, Chunk * chunk);
 
 #endif

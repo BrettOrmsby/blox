@@ -23,7 +23,7 @@ value.o: value.c value.h common.h
 vm.o: vm.c vm.h chunk.h debug.h common.h value.h compiler.h
 	gcc $(FLAGS) -c vm.c
 
-compiler.o: compiler.c compiler.h common.h scanner.h
+compiler.o: compiler.c compiler.h common.h scanner.h vm.h debug.h
 	gcc $(FLAGS) -c compiler.c
 
 scanner.o: scanner.c scanner.h common.h
