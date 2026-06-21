@@ -1,2 +1,3 @@
 *.o
 bf-lang
+test.bf
