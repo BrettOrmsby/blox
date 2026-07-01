@@ -14,7 +14,7 @@ chunk.o: chunk.c chunk.h memory.h value.h common.h
 memory.o: memory.c memory.h common.h object.h vm.h
 	gcc $(FLAGS) -c memory.c
 
-debug.o: debug.c debug.h value.h common.h
+debug.o: debug.c debug.h value.h common.h object.h
 	gcc $(FLAGS) -c debug.c
 
 value.o: value.c value.h common.h object.h
