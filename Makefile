@@ -1,36 +1,41 @@
 FLAGS = -Wall -g
+SRC = src
+BUILD = build
 
 all: bf-lang
 
-bf-lang: main.o chunk.o memory.o debug.o value.o vm.o compiler.o scanner.o object.o table.o
-	gcc $(FLAGS) -o bf-lang main.o chunk.o memory.o debug.o value.o vm.o compiler.o scanner.o object.o table.o
+$(BUILD):
+	mkdir -p $(BUILD)
 
-main.o: main.c chunk.h vm.h common.h
-	gcc $(FLAGS) -c main.c
+bf-lang: $(BUILD)/main.o $(BUILD)/chunk.o $(BUILD)/memory.o $(BUILD)/debug.o $(BUILD)/value.o $(BUILD)/vm.o $(BUILD)/compiler.o $(BUILD)/scanner.o $(BUILD)/object.o $(BUILD)/table.o
+	gcc $(FLAGS) -o bf-lang $(BUILD)/main.o $(BUILD)/chunk.o $(BUILD)/memory.o $(BUILD)/debug.o $(BUILD)/value.o $(BUILD)/vm.o $(BUILD)/compiler.o $(BUILD)/scanner.o $(BUILD)/object.o $(BUILD)/table.o
 
-chunk.o: chunk.c chunk.h memory.h value.h common.h vm.h
-	gcc $(FLAGS) -c chunk.c
+$(BUILD)/main.o: $(SRC)/main.c $(SRC)/chunk.h $(SRC)/vm.h $(SRC)/common.h | $(BUILD)
+	gcc $(FLAGS) -c $(SRC)/main.c -o $(BUILD)/main.o
 
-memory.o: memory.c memory.h common.h object.h vm.h debug.h compiler.h
-	gcc $(FLAGS) -c memory.c
+$(BUILD)/chunk.o: $(SRC)/chunk.c $(SRC)/chunk.h $(SRC)/memory.h $(SRC)/value.h $(SRC)/common.h $(SRC)/vm.h | $(BUILD)
+	gcc $(FLAGS) -c $(SRC)/chunk.c -o $(BUILD)/chunk.o
 
-debug.o: debug.c debug.h value.h common.h object.h
-	gcc $(FLAGS) -c debug.c
+$(BUILD)/memory.o: $(SRC)/memory.c $(SRC)/memory.h $(SRC)/common.h $(SRC)/object.h $(SRC)/vm.h $(SRC)/debug.h $(SRC)/compiler.h | $(BUILD)
+	gcc $(FLAGS) -c $(SRC)/memory.c -o $(BUILD)/memory.o
 
-value.o: value.c value.h common.h object.h
-	gcc $(FLAGS) -c value.c
+$(BUILD)/debug.o: $(SRC)/debug.c $(SRC)/debug.h $(SRC)/value.h $(SRC)/common.h $(SRC)/object.h | $(BUILD)
+	gcc $(FLAGS) -c $(SRC)/debug.c -o $(BUILD)/debug.o
 
-vm.o: vm.c vm.h chunk.h debug.h common.h value.h compiler.h object.h memory.h table.h object.h
-	gcc $(FLAGS) -c vm.c
+$(BUILD)/value.o: $(SRC)/value.c $(SRC)/value.h $(SRC)/common.h $(SRC)/object.h | $(BUILD)
+	gcc $(FLAGS) -c $(SRC)/value.c -o $(BUILD)/value.o
 
-compiler.o: compiler.c compiler.h common.h scanner.h vm.h debug.h object.h memory.h
-	gcc $(FLAGS) -c compiler.c
+$(BUILD)/vm.o: $(SRC)/vm.c $(SRC)/vm.h $(SRC)/chunk.h $(SRC)/debug.h $(SRC)/common.h $(SRC)/value.h $(SRC)/compiler.h $(SRC)/object.h $(SRC)/memory.h $(SRC)/table.h $(SRC)/object.h | $(BUILD)
+	gcc $(FLAGS) -c $(SRC)/vm.c -o $(BUILD)/vm.o
 
-scanner.o: scanner.c scanner.h common.h
-	gcc $(FLAGS) -c scanner.c
-object.o: object.c object.h common.h memory.h value.h vm.h table.h chunk.h
-	gcc $(FLAGS) -c object.c
-table.o: table.c table.h common.h value.h memory.h object.h
-	gcc $(FLAGS) -c table.c
+$(BUILD)/compiler.o: $(SRC)/compiler.c $(SRC)/compiler.h $(SRC)/common.h $(SRC)/scanner.h $(SRC)/vm.h $(SRC)/debug.h $(SRC)/object.h $(SRC)/memory.h | $(BUILD)
+	gcc $(FLAGS) -c $(SRC)/compiler.c -o $(BUILD)/compiler.o
+
+$(BUILD)/scanner.o: $(SRC)/scanner.c $(SRC)/scanner.h $(SRC)/common.h | $(BUILD)
+	gcc $(FLAGS) -c $(SRC)/scanner.c -o $(BUILD)/scanner.o
+$(BUILD)/object.o: $(SRC)/object.c $(SRC)/object.h $(SRC)/common.h $(SRC)/memory.h $(SRC)/value.h $(SRC)/vm.h $(SRC)/table.h $(SRC)/chunk.h | $(BUILD)
+	gcc $(FLAGS) -c $(SRC)/object.c -o $(BUILD)/object.o
+$(BUILD)/table.o: $(SRC)/table.c $(SRC)/table.h $(SRC)/common.h $(SRC)/value.h $(SRC)/memory.h $(SRC)/object.h | $(BUILD)
+	gcc $(FLAGS) -c $(SRC)/table.c -o $(BUILD)/table.o
 clean:
-	rm *.o bf-lang
+	rm -rf $(BUILD) bf-lang
