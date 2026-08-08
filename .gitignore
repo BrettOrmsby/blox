@@ -1,3 +1,6 @@
 *.o
 bf-lang
 test.bf
+/tests/*
+!/tests/*.out
+!/tests/*.in

@@ -8,6 +8,8 @@ for file_in in tests/*.in; do
 
     file_out_val="$file_base.out" # Stores success case
     file_out_bf_tst="$file_base.out.bf" # Updated with compiled bf
+    file_out_bf_tst_c="$file_base.out.c" # The BF program converted to C
+    file_out_bf_test_c_compiled="$file_base" # The comiled C program
     file_out_tst="$file_base.out.tst" # Updated with ouput of compiled bf
 
     # Validate infile exists (do the same for out validate file)
@@ -25,7 +27,9 @@ for file_in in tests/*.in; do
 
     # Run the compile pipeline
     "./bf-lang" "$file_in" > "$file_out_bf_tst"
-    "./bin/bf" -c "$file_out_bf_tst" > "$file_out_tst"
+    "./bin/bf" -c "$file_out_bf_tst"
+    gcc -o "$file_out_bf_test_c_compiled" "$file_out_bf_tst_c"
+    "./$file_out_bf_test_c_compiled" > "$file_out_tst"
 
     # Execute diff
     $diff "$file_out_tst" "$file_out_val"

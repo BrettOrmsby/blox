@@ -13,11 +13,6 @@
 
 VM vm;
 
-// TODO: remove
-static Value clockNative(int argCount, Value* args) {
-  return NUMBER_VAL((double)clock() / CLOCKS_PER_SEC);
-}
-
 static void resetStack() {
     vm.stackTop = vm.stack;
     vm.frameCount = 0;
@@ -45,14 +40,6 @@ static void runtimeError(const char* format, ...) {
     resetStack();
 }
 
-static void defineNative(const char* name, NativeFn function) {
-  push(OBJ_VAL(copyString(name, (int)strlen(name))));
-  push(OBJ_VAL(newNative(function)));
-  tableSet(&vm.globals, AS_STRING(vm.stack[0]), vm.stack[1]);
-  pop();
-  pop();
-}
-
 void initVM() {
  resetStack();
  vm.objects = NULL;
@@ -63,10 +50,10 @@ void initVM() {
  vm.grayCapacity = 0;
  vm.grayStack = NULL;
 
+ vm.cellPointer = 0;
+
  initTable(&vm.globals);
  initTable(&vm.strings);
-
- defineNative("clock", clockNative); // TODO: remove
 }
 
 void freeVM() {
@@ -78,10 +65,61 @@ void push(Value value) {
     *vm.stackTop = value;
     vm.stackTop++;
 }
+/*
+ * TODO:
+ * - Create new variable type reference
+ * - When pop reference, just go to that cell
+ * - Make VM store cell
+ * - Whenever we do a calculation and need to push a value, push a reference
+ * - Whenever we add ">" we increase the cell count
+ * - When we clear out cells after a function or loop or something, need to zero out cells to reduce memory
+ */
 Value pop() {
     vm.stackTop--;
-    return *vm.stackTop;
+    vm.cellPointer++;
+    Value removed = *vm.stackTop;
+    switch(removed.type) {
+        case VAL_INTERMEDIATE:
+            // This is a BF value/result of a calculation. It is already in a cell
+            break;
+        case VAL_NIL:
+            printf(">");
+            break;
+        case VAL_BOOL:
+            if(AS_BOOL(removed)) {
+                printf("+>");
+            } else {
+                printf(">");
+            }
+            break;
+        case VAL_NUMBER:
+            {
+                int number = AS_NUMBER(removed);
+                for(int i = 0; i < number; i++) {
+                    printf("+");
+                }
+                printf(">");
+                break;
+            }
+        // case VAL_REF:
+        //     {
+        //         // NOT YET IMPLEMENTED, I think this is what I will use for variables
+        //         int cellPos = AS_NUMBER(removed);
+        //         int diff = vm.cellPointer - cellPos;
+        //         if(diff < 0) {
+        //             runtimeError("Reference is in the future. Somthing wrong happened");
+        //         }
+        //         // Need to copy the reference cell into the next two open positions, decreasing as it goes
+        //         // Then move the last cell back into the refrence
+        //         for(int i = 0; i < diff; i++) {}
+        //         break;
+        //     }
+        case VAL_OBJ:
+            fprintf(stderr, "NOT SUPPORTED: Object constants");
+    }
+    return removed;
 }
+
 static Value peek(int distance) {
     return vm.stackTop[-1 - distance];
 }
@@ -109,19 +147,11 @@ static bool callValue(Value callee, int argCount) {
         switch(OBJ_TYPE(callee)) {
             case OBJ_CLOSURE:
                 return call(AS_CLOSURE(callee), argCount);
-            // TODO: remove
-            case OBJ_NATIVE: {
-                NativeFn native = AS_NATIVE(callee);
-                Value result = native(argCount, vm.stackTop - argCount);
-                vm.stackTop -= argCount + 1;
-                push(result);
-                return true;
-            }
             default:
                 break; // Non-callable object type
         }
     }
-    runtimeError("Can only call functions and classes.");
+    runtimeError("Can only call functions.");
     return false;
 }
 
@@ -304,8 +334,9 @@ static InterpretResult run() {
                 // push(NUMBER_VAL(-AS_NUMBER(pop())));
                 // break;
             case OP_PRINT: {
-                printValue(pop());
-                printf("\n");
+                pop();
+                printf("<.[-]"); // Print previous cell then zero it out
+                vm.cellPointer--;
                 break;
             }
             case OP_JUMP: {
