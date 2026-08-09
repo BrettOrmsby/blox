@@ -11,7 +11,7 @@ typedef enum {
     VAL_NIL,
     VAL_NUMBER,
     VAL_OBJ,
-    VAL_INTERMEDIATE,
+    VAL_REFERENCE,
 } ValueType;
 
 typedef struct {
@@ -27,7 +27,7 @@ typedef struct {
 #define IS_NIL(value) ((value).type == VAL_NIL)
 #define IS_NUMBER(value) ((value).type == VAL_NUMBER)
 #define IS_OBJ(value) ((value).type == VAL_OBJ)
-#define IS_INTERMEDIATE(value) ((value).type == VAL_INTERMEDIATE)
+#define IS_REFERENCE(value) ((value).type == VAL_REFERENCE)
 
 #define AS_BOOL(value) ((value).as.boolean)
 #define AS_NUMBER(value) ((value).as.number)
@@ -37,7 +37,7 @@ typedef struct {
 #define NIL_VAL ((Value){VAL_NIL, {.number = 0}})
 #define NUMBER_VAL(value) ((Value){VAL_NUMBER, {.number = value}})
 #define OBJ_VAL(object) ((Value){VAL_OBJ, {.obj = (Obj*)object}})
-#define INTERMEDIATE_VALUE() ((Value){VAL_INTERMEDIATE, {}})
+#define REFERENCE_VAL(value) ((Value){VAL_REFERENCE, {.number = value}})
 
 typedef struct {
     int capacity;

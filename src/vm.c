@@ -65,28 +65,55 @@ void push(Value value) {
     *vm.stackTop = value;
     vm.stackTop++;
 }
-/*
- * TODO:
- * - Create new variable type reference
- * - When pop reference, just go to that cell
- * - Make VM store cell
- * - Whenever we do a calculation and need to push a value, push a reference
- * - Whenever we add ">" we increase the cell count
- * - When we clear out cells after a function or loop or something, need to zero out cells to reduce memory
- */
+
 Value pop() {
     vm.stackTop--;
-    vm.cellPointer++;
     Value removed = *vm.stackTop;
-    switch(removed.type) {
-        case VAL_INTERMEDIATE:
-            // This is a BF value/result of a calculation. It is already in a cell
+    return removed;
+}
+
+static Value peek(int distance) {
+    return vm.stackTop[-1 - distance];
+}
+
+static void copyCell(int pos) {
+    // Need to copy the cell into the next two open cells,
+    // then use the last cell to copy it back into the original
+    int distance = vm.cellPointer - pos;
+    if(distance < 0) {
+        runtimeError("Copy Cell Failed. Somthing happened to get a negetive distance");
+    }
+
+    // PART 1: Duplicate cell at pos into the 2 blank cells
+    for(int i = 0; i < distance; i++) printf("<");
+    printf("[-");
+    for(int i = 0; i < distance; i++) printf(">");
+    printf("+>+");
+    for(int i = 0; i < distance + 1; i++) printf("<");
+    printf("]");
+
+    // PART 2: Copy the cell at the latest position back into pos
+    // Note that this zeroes out the last cell too
+    for(int i = 0; i < distance + 1;  i++) printf(">");
+    printf("[-");
+    for(int i = 0; i < distance + 1;  i++) printf("<");
+    printf("-");
+    for(int i = 0; i < distance + 1;  i++) printf(">");
+    printf("]");
+    vm.cellPointer++;
+}
+
+static void setCell(Value value) {
+    switch(value.type) {
+        case VAL_REFERENCE:
+            copyCell(AS_NUMBER(value));
+            vm.cellPointer--; // Since we increment it in the copyCell function
             break;
         case VAL_NIL:
             printf(">");
             break;
         case VAL_BOOL:
-            if(AS_BOOL(removed)) {
+            if(AS_BOOL(value)) {
                 printf("+>");
             } else {
                 printf(">");
@@ -94,7 +121,7 @@ Value pop() {
             break;
         case VAL_NUMBER:
             {
-                int number = AS_NUMBER(removed);
+                int number = AS_NUMBER(value);
                 for(int i = 0; i < number; i++) {
                     printf("+");
                 }
@@ -117,11 +144,7 @@ Value pop() {
         case VAL_OBJ:
             fprintf(stderr, "NOT SUPPORTED: Object constants");
     }
-    return removed;
-}
-
-static Value peek(int distance) {
-    return vm.stackTop[-1 - distance];
+    vm.cellPointer++;
 }
 
 static bool call(ObjClosure* closure, int argCount) {
@@ -255,7 +278,8 @@ static InterpretResult run() {
             case OP_POP: pop(); break;
             case OP_GET_LOCAL: {
                 uint8_t slot = READ_BYTE();
-                push(frame->slots[slot]);
+                setCell(frame->slots[slot]);
+                push(REFERENCE_VAL(vm.cellPointer-1));
                 break;
             }
             case OP_GET_GLOBAL: {
@@ -334,7 +358,7 @@ static InterpretResult run() {
                 // push(NUMBER_VAL(-AS_NUMBER(pop())));
                 // break;
             case OP_PRINT: {
-                pop();
+                setCell(pop());
                 printf("<.[-]"); // Print previous cell then zero it out
                 vm.cellPointer--;
                 break;

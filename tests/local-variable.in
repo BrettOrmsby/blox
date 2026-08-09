@@ -1,0 +1,11 @@
+{
+  var a = 65;
+  print a;
+  {
+    var b = 66;
+    print b;
+  }
+  var c = 67;
+  a = c;
+  print a;
+}
