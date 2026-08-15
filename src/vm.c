@@ -215,21 +215,21 @@ static bool isFalsey(Value value) {
     return IS_NIL(value) || (IS_BOOL(value) && !AS_BOOL(value));
 }
 
-static void concatenate() {
-    ObjString* b = AS_STRING(peek(0));
-    ObjString* a = AS_STRING(peek(1));
+// static void concatenate() {
+//     ObjString* b = AS_STRING(peek(0));
+//     ObjString* a = AS_STRING(peek(1));
 
-    int length = a->length + b->length;
-    char* chars = ALLOCATE(char, length + 1);
-    memcpy(chars, a->chars, a->length);
-    memcpy(chars + a->length, b->chars, b->length);
-    chars[length] = '\0';
+//     int length = a->length + b->length;
+//     char* chars = ALLOCATE(char, length + 1);
+//     memcpy(chars, a->chars, a->length);
+//     memcpy(chars + a->length, b->chars, b->length);
+//     chars[length] = '\0';
 
-    ObjString* result = takeString(chars, length);
-    pop();
-    pop();
-    push(OBJ_VAL(result));
-}
+//     ObjString* result = takeString(chars, length);
+//     pop();
+//     pop();
+//     push(OBJ_VAL(result));
+// }
 
 static InterpretResult run() {
     CallFrame* frame = &vm.frames[vm.frameCount - 1];
@@ -323,28 +323,55 @@ static InterpretResult run() {
                 break;
             }
             case OP_EQUAL: {
-                Value b = pop();
-                Value a = pop();
-                push(BOOL_VAL(valuesEqual(a, b)));
+                setCell(pop()); // Right
+                setCell(pop()); // Left
+                // [Start][Decrement both cells][Normalize to 1][Negate]
+                // EX: 970 --> 200 --> 010 --> 000
+                //       ^      ^      ^        ^
+                // EX: 550 --> 000 --> 000 --> 100
+                //       ^      ^      ^        ^
+                printf("<[-<->]<[[-]>+<]+>[-<->]");
+                vm.cellPointer--;
+                push(REFERENCE_VAL(vm.cellPointer-1));
                 break;
             }
             case OP_GREATER:  BINARY_OP(BOOL_VAL, >); break;
             case OP_LESS:     BINARY_OP(BOOL_VAL, <); break;
             // case OP_NEGATE: push(-pop()); break;
             case OP_ADD: {
-                if(IS_STRING(peek(0)) && IS_STRING(peek(1))) {
-                    concatenate();
-                } else if(IS_NUMBER(peek(0)) && IS_NUMBER(peek(1))) {
+                // if(IS_STRING(peek(0)) && IS_STRING(peek(1))) {
+                //     concatenate();
+                // } else
+
+                // Optimizations for compiler
+                if(IS_NUMBER(peek(0)) && IS_NUMBER(peek(1))) {
                     uint8_t b = AS_NUMBER(pop());
                     uint8_t a = AS_NUMBER(pop());
                     push(NUMBER_VAL(a+b));
                 } else {
-                    runtimeError("Operands must be two numbers of two strings.");
-                    return INTERPRET_RUNTIME_ERROR;
+                    setCell(pop()); // Right
+                    setCell(pop()); // Left
+                    printf("<[-<+>]");
+                    vm.cellPointer--;
+                    push(REFERENCE_VAL(vm.cellPointer-1));
                 }
                 break;
             }
-            case OP_SUBTRACT: BINARY_OP(NUMBER_VAL, -); break;
+            case OP_SUBTRACT:
+                // Optimizations for compiler
+                if(IS_NUMBER(peek(0)) && IS_NUMBER(peek(1))) {
+                    uint8_t b = AS_NUMBER(pop());
+                    uint8_t a = AS_NUMBER(pop());
+                    push(NUMBER_VAL(a-b));
+                } else {
+                    Value right = pop();
+                    setCell(pop()); // Left
+                    setCell(right); // Right
+                    printf("<[-<->]");
+                    vm.cellPointer--;
+                    push(REFERENCE_VAL(vm.cellPointer-1));
+                }
+                break;
             case OP_MULTIPLY: BINARY_OP(NUMBER_VAL,*); break;
             case OP_DIVIDE: BINARY_OP(NUMBER_VAL, /); break;
             case OP_NOT:
