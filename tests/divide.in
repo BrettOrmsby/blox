@@ -1,0 +1,4 @@
+print 65 + 24 / 6; // A + 4 = E
+var a = 65;
+print a + 12/2; // A + 6 = G
+print a + 17/3; // A + 5 = F

@@ -335,8 +335,48 @@ static InterpretResult run() {
                 push(REFERENCE_VAL(vm.cellPointer-1));
                 break;
             }
-            case OP_GREATER:  BINARY_OP(BOOL_VAL, >); break;
-            case OP_LESS:     BINARY_OP(BOOL_VAL, <); break;
+            case OP_GREATER:  {
+                // See below for less than to understand. The left and right are just swaped.
+                printf(">+>>");
+                vm.cellPointer += 3;
+                setCell(pop()); // Right
+                setCell(pop()); // Left
+                printf("<+<+[->-[>]<<]<[->[-]<]<[-<>>[-]+<<]>>[-<<+>>]>>[-]<[-]<[-]<[-]");
+                vm.cellPointer -= 4;
+                push(REFERENCE_VAL(vm.cellPointer-1));
+            }
+            break;
+            case OP_LESS: {
+                // See https://stackoverflow.com/a/13327857
+                // Need to start by pointing to l
+                // <+<+                   This is for managing if l=0 and r=0
+                //     [->-[>]<<]             This is a magic loop. if l is the one which
+                //                            reaches 0 first (l<r),then pointer will be at(4).
+                //                            Else it will be at (3)
+                //     <[-
+                //          //       BLOCK (l>=r)
+                //          //You are at (2) and do whatever you want and come back to (2).
+                //          //Its a must
+                //         >[-]< // Zero out cell 3
+                //     ]
+                //     <[-<
+                //          //       BLOCK(l<r)
+                //          //You are at (1) and do whatever you want and come back to (1).
+                //          //Its a must
+                //        >>[-]+<< // Set cell 3 to 1
+                //     ]
+                // >>[-<<+>>] // Copy 3 into 1
+                // >>[-]<[-]<[-]<[-] // Zero out 5, 4, 3, 2
+                printf(">+>>"); // setup required 0 1 0 >l r 0
+                vm.cellPointer += 3;
+                Value right = pop();
+                setCell(pop()); // Left
+                setCell(right); // Right
+                printf("<+<+[->-[>]<<]<[->[-]<]<[-<>>[-]+<<]>>[-<<+>>]>>[-]<[-]<[-]<[-]");
+                vm.cellPointer -= 4;
+                push(REFERENCE_VAL(vm.cellPointer-1));
+            };
+            break;
             // case OP_NEGATE: push(-pop()); break;
             case OP_ADD: {
                 // if(IS_STRING(peek(0)) && IS_STRING(peek(1))) {
@@ -372,10 +412,55 @@ static InterpretResult run() {
                     push(REFERENCE_VAL(vm.cellPointer-1));
                 }
                 break;
-            case OP_MULTIPLY: BINARY_OP(NUMBER_VAL,*); break;
-            case OP_DIVIDE: BINARY_OP(NUMBER_VAL, /); break;
+            case OP_MULTIPLY:
+                if(IS_NUMBER(peek(0)) && IS_NUMBER(peek(1))) {
+                    uint8_t b = AS_NUMBER(pop());
+                    uint8_t a = AS_NUMBER(pop());
+                    push(NUMBER_VAL(a * b));
+                } else {
+                    setCell(pop()); // Right
+                    setCell(pop()); // Left
+                    /*
+                     // Layout will be [Result][Multiplier][Counter][Adder]
+                     <[->+>+<<]>>[-<<+>>]          // Copy multiplier into counter
+                     >[-                           // Repet equal to the counter
+                        <[->>+>+<<<]>>>[-<<<+>>>]  // Copy Multiplier into Adder
+                        <[-<<<+>>>]                // Add Adder to Result
+                    <]
+                    <[-]                           // Zero out Multiplier
+                     */
+                    printf("<[->+>+<<]>>[-<<+>>]>[-<[->>+>+<<<]>>>[-<<<+>>>]<[-<<<+>>>]<]<[-]");
+                    vm.cellPointer--;
+                    push(REFERENCE_VAL(vm.cellPointer-1));
+                }
+                break;
+            case OP_DIVIDE: {
+                /*
+                 * SEE https://esolangs.org/wiki/Brainfuck_algorithms#Divmod
+                 # Set up for this senario
+                 +<<
+                 # >n d 1 0 0 0
+                 [->-[>+>>]>[[-<+>]+>+>>]<<<<<]
+                 # >0 d-n%d n%d+1 n/d 0 0
+                 # Copy 4 into 1, and zero out 2 and 3
+                 >>>[-<<<+>>>]<[-]<[-]
+                 */
+                Value right = pop();
+                setCell(pop()); // Left
+                setCell(right); // Right
+                printf("+<<[->-[>+>>]>[[-<+>]+>+>>]<<<<<]>>>[-<<<+>>>]<[-]<[-]");
+                vm.cellPointer--;
+                push(REFERENCE_VAL(vm.cellPointer-1));
+            } break;
             case OP_NOT:
-                push(BOOL_VAL(isFalsey(pop())));
+                setCell(pop());
+                /* [operand][result]
+                    +          // Set result to 1
+                    <[[-]>-<]  // If the operand is > 0, clear it, then set result to 0
+                    >[-<+>]    // Move result into operand
+                */
+                printf("+<[[-]>-<]>[-<+>]");
+                push(REFERENCE_VAL(vm.cellPointer-1));
                 break;
             // case OP_NEGATE:
                 // if (!IS_NUMBER(peek(0))) {
