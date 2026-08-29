@@ -8,6 +8,7 @@
 
 #define FRAMES_MAX 64
 #define STACK_MAX (FRAMES_MAX * UINT8_COUNT)
+#define SCOPE_MAX 64
 
 typedef struct {
     ObjClosure* closure;
@@ -34,6 +35,8 @@ typedef struct {
     Obj** grayStack;
 
     int cellPointer;
+    int scopeBacktrack[SCOPE_MAX];
+    int scopeCount;
 } VM;
 
 typedef enum {

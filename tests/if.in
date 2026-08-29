@@ -1,0 +1,14 @@
+var a = 65;
+if(0) { print a; }
+else { print a + 1; }
+
+if(1) { print a + 2; }
+
+if(1) { print a + 3; }
+else if (1) { print a + 4; }
+else { print a + 5; }
+
+if(0) { print a + 6; }
+else if(0) { print a + 7; }
+else if(0) { print a + 8; }
+else { print a + 9; }

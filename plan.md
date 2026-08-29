@@ -1,5 +1,15 @@
 # Plan/Language Features Needed
 
+Order
+* Ands/Ors
+* Test =>,<=
+* Loops
+* Local Variables
+* Functions
+* Go back to ifs and clear values in stack too that were not used?
+* Modulu operator
+* Arrays
+
 - integer that can span more than u8 since memory is big (u8 u32...?)
 - character
 - array-like type

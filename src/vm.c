@@ -4,6 +4,7 @@
 #include "vm.h"
 #include "compiler.h"
 #include "object.h"
+#include "table.h"
 #include "value.h"
 #include "memory.h"
 #include <stdio.h>
@@ -51,6 +52,7 @@ void initVM() {
  vm.grayStack = NULL;
 
  vm.cellPointer = 0;
+ vm.scopeCount = 0;
 
  initTable(&vm.globals);
  initTable(&vm.strings);
@@ -97,7 +99,7 @@ static void copyCell(int pos) {
     for(int i = 0; i < distance + 1;  i++) printf(">");
     printf("[-");
     for(int i = 0; i < distance + 1;  i++) printf("<");
-    printf("-");
+    printf("+");
     for(int i = 0; i < distance + 1;  i++) printf(">");
     printf("]");
     vm.cellPointer++;
@@ -128,23 +130,33 @@ static void setCell(Value value) {
                 printf(">");
                 break;
             }
-        // case VAL_REF:
-        //     {
-        //         // NOT YET IMPLEMENTED, I think this is what I will use for variables
-        //         int cellPos = AS_NUMBER(removed);
-        //         int diff = vm.cellPointer - cellPos;
-        //         if(diff < 0) {
-        //             runtimeError("Reference is in the future. Somthing wrong happened");
-        //         }
-        //         // Need to copy the reference cell into the next two open positions, decreasing as it goes
-        //         // Then move the last cell back into the refrence
-        //         for(int i = 0; i < diff; i++) {}
-        //         break;
-        //     }
         case VAL_OBJ:
             fprintf(stderr, "NOT SUPPORTED: Object constants");
     }
     vm.cellPointer++;
+}
+
+static void setReference(int pos, Value to) {
+    setCell(to);
+    int dist = vm.cellPointer - pos - 1;
+    // Zero out variable
+    for(int i = 0; i <= dist; i++) printf("<");
+    printf("[-]");
+    for(int i = 0; i < dist; i++) printf(">");
+    // Copy current cell into variable
+    printf("[-");
+    for(int i = 0; i < dist; i++) printf("<");
+    printf("+");
+    for(int i = 0; i < dist; i++) printf(">");
+    printf("]");
+    vm.cellPointer--;
+}
+
+static void backTrackTo(int pos) {
+    while(vm.cellPointer > pos) {
+        printf("<[-]");
+        vm.cellPointer--;
+    }
 }
 
 static bool call(ObjClosure* closure, int argCount) {
@@ -215,22 +227,6 @@ static bool isFalsey(Value value) {
     return IS_NIL(value) || (IS_BOOL(value) && !AS_BOOL(value));
 }
 
-// static void concatenate() {
-//     ObjString* b = AS_STRING(peek(0));
-//     ObjString* a = AS_STRING(peek(1));
-
-//     int length = a->length + b->length;
-//     char* chars = ALLOCATE(char, length + 1);
-//     memcpy(chars, a->chars, a->length);
-//     memcpy(chars + a->length, b->chars, b->length);
-//     chars[length] = '\0';
-
-//     ObjString* result = takeString(chars, length);
-//     pop();
-//     pop();
-//     push(OBJ_VAL(result));
-// }
-
 static InterpretResult run() {
     CallFrame* frame = &vm.frames[vm.frameCount - 1];
 
@@ -257,6 +253,7 @@ static InterpretResult run() {
 
     for(;;) {
         #ifdef DEBUG_TRACE_EXECUTION
+        printf("\n");
         for(Value* slot = vm.stack; slot < vm.stackTop; slot++) {
             printf("[ ");
             printValue(*slot);
@@ -264,6 +261,7 @@ static InterpretResult run() {
         }
         printf("\n");
         disassembleInstruction(&frame->closure->function->chunk, (int)(frame->ip - frame->closure->function->chunk.code));
+        printf("Cellpointer: %d\n", vm.cellPointer);
         #endif
         uint8_t instruction;
         switch(instruction = READ_BYTE()) {
@@ -299,17 +297,19 @@ static InterpretResult run() {
             }
             case OP_SET_GLOBAL: {
                 ObjString* name = READ_STRING();
-                if(tableSet(&vm.globals, name, peek(0))) {
-                    tableDelete(&vm.globals, name);
+                Value reference;
+                if(!tableGet(&vm.globals, name, &reference)) {
                     runtimeError("Undefined variables '%s'.", name->chars);
                     return INTERPRET_RUNTIME_ERROR;
                 }
+                setReference(AS_NUMBER(reference), pop());
+                push(reference);
                 break;
             }
             case OP_DEFINE_GLOBAL: {
                 ObjString* name = READ_STRING();
-                tableSet(&vm.globals, name, peek(0));
-                pop();
+                setCell(pop());
+                tableSet(&vm.globals, name, REFERENCE_VAL(vm.cellPointer-1));
                 break;
             }
             case OP_GET_UPVALUE: {
@@ -421,15 +421,15 @@ static InterpretResult run() {
                     setCell(pop()); // Right
                     setCell(pop()); // Left
                     /*
-                     // Layout will be [Result][Multiplier][Counter][Adder]
-                     <[->+>+<<]>>[-<<+>>]          // Copy multiplier into counter
-                     >[-                           // Repet equal to the counter
-                        <[->>+>+<<<]>>>[-<<<+>>>]  // Copy Multiplier into Adder
-                        <[-<<<+>>>]                // Add Adder to Result
-                    <]
-                    <[-]                           // Zero out Multiplier
+                     // Layout will be [R][L][L'][Result]
+                     <<[- // Loop for R
+                        >[->+>+<<] // Add L to L' and Result
+                        >[-<+>] // Move L' into L
+                     <<]
+                     >>>[-<<<+>>>] // Copy Result into R
+                     <<[-] // Zero out L
                      */
-                    printf("<[->+>+<<]>>[-<<+>>]>[-<[->>+>+<<<]>>>[-<<<+>>>]<[-<<<+>>>]<]<[-]");
+                    printf("<<[->[->+>+<<]>[-<+>]<<]>>>[-<<<+>>>]<<[-]");
                     vm.cellPointer--;
                     push(REFERENCE_VAL(vm.cellPointer-1));
                 }
@@ -485,6 +485,29 @@ static InterpretResult run() {
                 if(isFalsey(peek(0))) frame->ip += offset;
                 break;
             }
+            // If and else uses a flag cell after the condition to
+            // conditionaly enter or skip the else block
+            // The content between these three commands must end at the
+            // cell it started at
+            case OP_IF:
+                setCell(pop());
+                printf("+<[[-]>->");
+                vm.scopeBacktrack[vm.scopeCount++] = ++vm.cellPointer;
+                if (vm.scopeCount == SCOPE_MAX) {
+                    runtimeError("Stack overflow.");
+                    return false;
+                }
+                break;
+            case OP_ELSE:
+                // Do not remove the back track, since it needs to happen again
+                backTrackTo(vm.scopeBacktrack[vm.scopeCount-1]);
+                printf("<<]>[[-]>");
+                break;
+            case OP_ENDIF:
+                backTrackTo(vm.scopeBacktrack[--vm.scopeCount]);
+                printf("<]<[-]");
+                vm.cellPointer -= 2; // Condition and flag are clear
+                break;
             case OP_LOOP: {
                 uint16_t offset = READ_SHORT();
                 frame->ip  -= offset;
@@ -518,6 +541,8 @@ static InterpretResult run() {
                 pop();
                 break;
             case OP_RETURN: {
+                return INTERPRET_OK;
+                // TODO: implement
                 Value result = pop();
                 closeUpvalues(frame->slots);
                 vm.frameCount --;
