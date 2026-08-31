@@ -1,8 +1,6 @@
 # Plan/Language Features Needed
 
 Order
-* Ands/Ors
-* Test =>,<=
 * Loops
 * Local Variables
 * Functions

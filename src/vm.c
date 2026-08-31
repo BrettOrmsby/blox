@@ -508,6 +508,16 @@ static InterpretResult run() {
                 printf("<]<[-]");
                 vm.cellPointer -= 2; // Condition and flag are clear
                 break;
+            case OP_SET_CELL:
+                setCell(peek(0));
+                break;
+            case OP_SET_OUTER:
+                // -3 for Ref, Condition, If/Else 1/0
+                setReference(vm.scopeBacktrack[vm.scopeCount-1] - 3, pop());
+                break;
+            case OP_PUSH_REF:
+                push(REFERENCE_VAL(vm.cellPointer-1));
+                break;
             case OP_LOOP: {
                 uint16_t offset = READ_SHORT();
                 frame->ip  -= offset;

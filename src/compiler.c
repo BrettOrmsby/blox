@@ -369,11 +369,13 @@ static uint8_t argumentList() {
 }
 
 static void and_(bool canAssign) {
-    int endJump = emitJump(OP_JUMP_IF_FALSE);
-    emitByte(OP_POP);
+    emitByte(OP_SET_CELL);
+    emitByte(OP_IF);
     parsePrecedence(PREC_AND);
-
-    patchJump(endJump);
+    emitByte(OP_SET_OUTER);
+    emitByte(OP_ELSE);
+    emitByte(OP_ENDIF);
+    emitByte(OP_PUSH_REF);
 }
 
 static void binary(bool canAssign) {
@@ -420,14 +422,13 @@ static void number(bool canAssign) {
 }
 
 static void or_(bool canAssign) {
-    int elseJump = emitJump(OP_JUMP_IF_FALSE);
-    int endJump = emitJump(OP_JUMP);
-
-    patchJump(elseJump);
-    emitByte(OP_POP);
-
+    emitByte(OP_SET_CELL);
+    emitByte(OP_IF);
+    emitByte(OP_ELSE);
     parsePrecedence(PREC_OR);
-    patchJump(endJump);
+    emitByte(OP_SET_OUTER);
+    emitByte(OP_ENDIF);
+    emitByte(OP_PUSH_REF);
 }
 
 static void string(bool canAssign) {

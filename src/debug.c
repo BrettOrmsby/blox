@@ -91,6 +91,13 @@ int disassembleInstruction(Chunk *chunk, int offset) {
                 return simpleInstruction("OP_ELSE", offset);
         case OP_ENDIF:
                 return simpleInstruction("OP_ENDIF", offset);
+        // Ands/Ors
+        case OP_SET_CELL:
+                return simpleInstruction("OP_SET_CELL", offset);
+        case OP_SET_OUTER:
+                return simpleInstruction("OP_SET_OUTER", offset);
+        case OP_PUSH_REF:
+                return simpleInstruction("OP_PUSH_REF", offset);
         case OP_LOOP:
             return jumpInstruction("OP_LOOP", -1, chunk, offset);
         case OP_ADD:
