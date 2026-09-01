@@ -410,6 +410,11 @@ static InterpretResult run() {
                 frame->ip += offset;
                 break;
             }
+            case OP_JUMP_BACK: {
+                uint16_t offset = READ_SHORT();
+                frame->ip -= offset;
+                break;
+            }
             case OP_JUMP_IF_FALSE: {
                 // TODO: not implemented
                 // uint16_t offset = READ_SHORT();
@@ -442,19 +447,17 @@ static InterpretResult run() {
             case OP_DUP:
                 copyCell(vm.cellPointer-1);
                 break;
-            case OP_SET_OUTER:
-                // -3 for 0, If/Else 1/0, Condition, Ref
-                setReference(vm.cellPointer - 4);
+            case OP_SET_CELL:
+                setReference(vm.cellPointer - READ_BYTE());
                 break;
-            case OP_PUSH_REF:
+            case OP_LOOP:
+                printf("+[>");
+                vm.cellPointer++;
                 break;
-                push(REFERENCE_VAL(vm.cellPointer-1));
+            case OP_ENDLOOP:
+                printf("<]");
+                vm.cellPointer--;
                 break;
-            case OP_LOOP: {
-                uint16_t offset = READ_SHORT();
-                frame->ip  -= offset;
-                break;
-            }
             case OP_CALL: {
                 // TODO: Not implemented
                 // int argCount = READ_BYTE();

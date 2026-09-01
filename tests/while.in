@@ -1,0 +1,6 @@
+var a = 65;
+var end = a + 26;
+while(a < end) {
+    print a;
+    a = a + 1;
+}

@@ -83,6 +83,8 @@ int disassembleInstruction(Chunk *chunk, int offset) {
             return simpleInstruction("OP_PRINT", offset);
         case OP_JUMP:
             return jumpInstruction("OP_JUMP", 1, chunk, offset);
+        case OP_JUMP_BACK:
+            return jumpInstruction("OP_JUMP_BACK", -1, chunk, offset);
         case OP_JUMP_IF_FALSE:
             return jumpInstruction("OP_JUMP_IF_FALSE", 1, chunk, offset);
         case OP_IF:
@@ -91,13 +93,10 @@ int disassembleInstruction(Chunk *chunk, int offset) {
                 return simpleInstruction("OP_ELSE", offset);
         case OP_ENDIF:
                 return simpleInstruction("OP_ENDIF", offset);
-        // Ands/Ors
         case OP_DUP:
                 return simpleInstruction("OP_DUP", offset);
-        case OP_SET_OUTER:
-                return simpleInstruction("OP_SET_OUTER", offset);
-        case OP_PUSH_REF:
-                return simpleInstruction("OP_PUSH_REF", offset);
+        case OP_SET_CELL:
+                return byteInstruction("OP_SET_CELL", chunk, offset);
         case OP_LOOP:
             return simpleInstruction("OP_LOOP", offset);
         case OP_ENDLOOP:

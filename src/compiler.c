@@ -148,6 +148,16 @@ static void emitBytes(uint8_t byte1, uint8_t byte2) {
     emitByte(byte2);
 }
 
+static void emitJumpBack(int backTo) {
+  emitByte(OP_JUMP_BACK);
+
+  int offset = currentChunk()->count - backTo + 2;
+  if (offset > UINT16_MAX) error("Loop body too large.");
+
+  emitByte((offset >> 8) & 0xff);
+  emitByte(offset & 0xff);
+}
+
 static void emitReturn() {
     emitByte(OP_NIL);
     emitByte(OP_RETURN);
@@ -362,10 +372,9 @@ static void and_(bool canAssign) {
     emitByte(OP_DUP);
     emitByte(OP_IF);
     parsePrecedence(PREC_AND);
-    emitByte(OP_SET_OUTER);
+    emitBytes(OP_SET_CELL, 4);
     emitByte(OP_ELSE);
     emitByte(OP_ENDIF);
-    emitByte(OP_PUSH_REF);
 }
 
 static void binary(bool canAssign) {
@@ -416,9 +425,8 @@ static void or_(bool canAssign) {
     emitByte(OP_IF);
     emitByte(OP_ELSE);
     parsePrecedence(PREC_OR);
-    emitByte(OP_SET_OUTER);
+    emitBytes(OP_SET_CELL, 4);
     emitByte(OP_ENDIF);
-    emitByte(OP_PUSH_REF);
 }
 
 static void string(bool canAssign) {
@@ -602,48 +610,59 @@ static void expressionStatement() {
 }
 
 static void forStatement() {
-    // beginScope();
-    // consume(TOKEN_LEFT_PAREN, "Expect '(' after 'for'.");
+    // Fors are probably the oddest of statements. All the loop params are optional,
+    // which makes things a bit more difficult. Plus the incrementor is run after
+    // the loop body, even though it appears earlier in the code. To get it so that it
+    // runs in the correct order, we jump over the incrementor and then at the end of
+    // the body, jump back to the incrementor which will jump to the loop end on finish.
+    beginScope();
+    consume(TOKEN_LEFT_PAREN, "Expect '(' after 'for'.");
 
-    // if(match(TOKEN_SEMICOLON)) {
-    //     // No initializer.
-    // } else if(match(TOKEN_VAR)) {
-    //     varDeclaration();
-    // } else {
-    //     expressionStatement();
-    // }
+    if(match(TOKEN_SEMICOLON)) {
+        // No initializer.
+    } else if(match(TOKEN_VAR)) {
+        varDeclaration();
+    } else {
+        expressionStatement();
+    }
 
-    // int loopStart = currentChunk()->count;
-    // int exitJump = -1;
-    // if(!match(TOKEN_SEMICOLON)) {
-    //     expression();
-    //     consume(TOKEN_SEMICOLON, "Expect ';' after loop condition.");
+    emitByte(OP_LOOP);
 
-    //     // Jump out if false
-    //     exitJump = emitJump(OP_JUMP_IF_FALSE);
-    //     emitByte(OP_POP);
-    // }
+    if(!match(TOKEN_SEMICOLON)) {
+        expression();
+        consume(TOKEN_SEMICOLON, "Expect ';' after loop condition.");
+    } else {
+        emitConstant(NUMBER_VAL(1)); // infinite loop
+    }
 
-    // if(!match(TOKEN_RIGHT_PAREN)) {
-    //     int bodyJump = emitJump(OP_JUMP);
-    //     int incrementStart = currentChunk()->count;
-    //     expression();
-    //     emitByte(OP_POP);
-    //     consume(TOKEN_RIGHT_PAREN, "Expect ')' after for clauses.");
+    int beforeIncrementor = -1;
+    int exit = -1;
 
-    //     emitLoop(loopStart);
-    //     loopStart = incrementStart;
-    //     patchJump(bodyJump);
-    // }
+    if(!match(TOKEN_RIGHT_PAREN)) {
+        int bodyJump = emitJump(OP_JUMP);
+        beforeIncrementor = currentChunk()->count;
+        expression();
+        emitByte(OP_POP);
+        consume(TOKEN_RIGHT_PAREN, "Expect ')' after for clauses.");
+        exit = emitJump(OP_JUMP);
+        patchJump(bodyJump);
+    }
 
-    // statement();
-    // emitLoop(loopStart);
+    emitByte(OP_IF);
 
-    // if (exitJump != -1) {
-    //     patchJump(exitJump);
-    //     emitByte(OP_POP); // condition
-    // }
-    // endScope();
+    statement();
+
+    if(beforeIncrementor != -1) {
+        emitJumpBack(beforeIncrementor);
+        patchJump(exit);
+    }
+
+    emitByte(OP_ELSE);
+    emitConstant(NUMBER_VAL(0));
+    emitBytes(OP_SET_CELL, 4);
+    emitByte(OP_ENDIF);
+    emitByte(OP_ENDLOOP);
+    endScope();
 }
 
 static void ifStatement() {
@@ -688,7 +707,8 @@ static void whileStatement() {
     statement();
     emitByte(OP_ELSE);
     emitConstant(NUMBER_VAL(0));
-    emitByte(OP_SET_OUTER);
+    emitBytes(OP_SET_CELL, 4);
+    emitByte(OP_ENDIF);
     emitByte(OP_ENDLOOP);
 }
 

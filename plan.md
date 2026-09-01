@@ -1,11 +1,10 @@
 # Plan/Language Features Needed
 
 Order
-* Loops
 * Local Variables
+* Go back to ifs and clear values in stack too that were not used?
 * Functions
 * Input value
-* Go back to ifs and clear values in stack too that were not used?
 * Modulu operator
 * Arrays
 
