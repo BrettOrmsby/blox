@@ -4,6 +4,7 @@ Order
 * Loops
 * Local Variables
 * Functions
+* Input value
 * Go back to ifs and clear values in stack too that were not used?
 * Modulu operator
 * Arrays

@@ -63,22 +63,24 @@ void freeVM() {
     freeTable(&vm.strings);
     freeObjects();
 }
-void push(Value value) {
+
+void pushVM(Value value) {
     *vm.stackTop = value;
     vm.stackTop++;
 }
 
-Value pop() {
+Value popVM() {
     vm.stackTop--;
     Value removed = *vm.stackTop;
     return removed;
 }
 
-static Value peek(int distance) {
-    return vm.stackTop[-1 - distance];
+static void pop() {
+    printf("<[-]");
+    vm.cellPointer--;
 }
 
-static void copyCell(int pos) {
+void copyCell(int pos) {
     // Need to copy the cell into the next two open cells,
     // then use the last cell to copy it back into the original
     int distance = vm.cellPointer - pos;
@@ -105,7 +107,7 @@ static void copyCell(int pos) {
     vm.cellPointer++;
 }
 
-static void setCell(Value value) {
+static void push(Value value) {
     switch(value.type) {
         case VAL_REFERENCE:
             copyCell(AS_NUMBER(value));
@@ -136,8 +138,7 @@ static void setCell(Value value) {
     vm.cellPointer++;
 }
 
-static void setReference(int pos, Value to) {
-    setCell(to);
+static void setReference(int pos) {
     int dist = vm.cellPointer - pos - 1;
     // Zero out variable
     for(int i = 0; i <= dist; i++) printf("<");
@@ -240,25 +241,15 @@ static InterpretResult run() {
         (frame->closure->function->chunk.constants.values[READ_BYTE()])
 
     #define READ_STRING() AS_STRING(READ_CONSTANT())
-    #define BINARY_OP(valueType, op) \
-        do { \
-        if(!IS_NUMBER(peek(0)) || !IS_NUMBER(peek(1))) { \
-            runtimeError("Operands must be numbers."); \
-            return INTERPRET_RUNTIME_ERROR; \
-        } \
-        int b = AS_NUMBER(pop()); \
-        int a = AS_NUMBER(pop()); \
-        push(valueType(a op b)); \
-        } while(false)
 
     for(;;) {
         #ifdef DEBUG_TRACE_EXECUTION
-        printf("\n");
-        for(Value* slot = vm.stack; slot < vm.stackTop; slot++) {
-            printf("[ ");
-            printValue(*slot);
-            printf(" ]");
-        }
+        // printf("\n");
+        // for(Value* slot = vm.stack; slot < vm.stackTop; slot++) {
+        //     printf("[ ");
+        //     printValue(*slot);
+        //     printf(" ]");
+        // }
         printf("\n");
         disassembleInstruction(&frame->closure->function->chunk, (int)(frame->ip - frame->closure->function->chunk.code));
         printf("Cellpointer: %d\n", vm.cellPointer);
@@ -275,9 +266,9 @@ static InterpretResult run() {
             case OP_FALSE: push(BOOL_VAL(false)); break;
             case OP_POP: pop(); break;
             case OP_GET_LOCAL: {
+                // TODO: not implemented
                 uint8_t slot = READ_BYTE();
-                setCell(frame->slots[slot]);
-                push(REFERENCE_VAL(vm.cellPointer-1));
+                push(frame->slots[slot]);
                 break;
             }
             case OP_GET_GLOBAL: {
@@ -291,8 +282,9 @@ static InterpretResult run() {
                 break;
             }
             case OP_SET_LOCAL: {
+                // TODO: not implemented
                 uint8_t slot = READ_BYTE();
-                frame->slots[slot] = peek(0);
+                frame->slots[slot] = REFERENCE_VAL(vm.cellPointer-1);
                 break;
             }
             case OP_SET_GLOBAL: {
@@ -302,29 +294,28 @@ static InterpretResult run() {
                     runtimeError("Undefined variables '%s'.", name->chars);
                     return INTERPRET_RUNTIME_ERROR;
                 }
-                setReference(AS_NUMBER(reference), pop());
-                push(reference);
+                copyCell(vm.cellPointer-1); // Duplicate the cell since an expression statement will pop it
+                setReference(AS_NUMBER(reference));
                 break;
             }
             case OP_DEFINE_GLOBAL: {
                 ObjString* name = READ_STRING();
-                setCell(pop());
                 tableSet(&vm.globals, name, REFERENCE_VAL(vm.cellPointer-1));
                 break;
             }
             case OP_GET_UPVALUE: {
+                // TODO: not implemented
                 uint8_t slot = READ_BYTE();
                 push(*frame->closure->upvalues[slot]->location);
                 break;
             }
             case OP_SET_UPVALUE: {
+                // TODO: not implemented
                 uint8_t slot = READ_BYTE();
-                *frame->closure->upvalues[slot]->location = peek(0);
+                *frame->closure->upvalues[slot]->location = REFERENCE_VAL(vm.cellPointer-1);//peek(0);
                 break;
             }
-            case OP_EQUAL: {
-                setCell(pop()); // Right
-                setCell(pop()); // Left
+            case OP_EQUAL:
                 // [Start][Decrement both cells][Normalize to 1][Negate]
                 // EX: 970 --> 200 --> 010 --> 000
                 //       ^      ^      ^        ^
@@ -332,24 +323,19 @@ static InterpretResult run() {
                 //       ^      ^      ^        ^
                 printf("<[-<->]<[[-]>+<]+>[-<->]");
                 vm.cellPointer--;
-                push(REFERENCE_VAL(vm.cellPointer-1));
                 break;
-            }
             case OP_GREATER:  {
                 // See below for less than to understand. The left and right are just swaped.
-                printf(">+>>");
-                vm.cellPointer += 3;
-                setCell(pop()); // Right
-                setCell(pop()); // Left
-                printf("<+<+[->-[>]<<]<[->[-]<]<[-<>>[-]+<<]>>[-<<+>>]>>[-]<[-]<[-]<[-]");
-                vm.cellPointer -= 4;
-                push(REFERENCE_VAL(vm.cellPointer-1));
+                printf("<[->>+<<]<[->>>>+<<<<]>+>>+>+<[->-[>]<<]<[->[-]<]<[-<>>[-]+<<]>>[-<<+>>]>>[-]<[-]<[-]<[-]");
+                vm.cellPointer--;
             }
             break;
             case OP_LESS: {
                 // See https://stackoverflow.com/a/13327857
+                // Setup required 0 1 0 >l r 0
+                // <[->>>+<<<]<[->>>+<<<]>+>>
                 // Need to start by pointing to l
-                // <+<+                   This is for managing if l=0 and r=0
+                // +>+<                   This is for managing if l=0 and r=0
                 //     [->-[>]<<]             This is a magic loop. if l is the one which
                 //                            reaches 0 first (l<r),then pointer will be at(4).
                 //                            Else it will be at (3)
@@ -367,74 +353,33 @@ static InterpretResult run() {
                 //     ]
                 // >>[-<<+>>] // Copy 3 into 1
                 // >>[-]<[-]<[-]<[-] // Zero out 5, 4, 3, 2
-                printf(">+>>"); // setup required 0 1 0 >l r 0
-                vm.cellPointer += 3;
-                Value right = pop();
-                setCell(pop()); // Left
-                setCell(right); // Right
-                printf("<+<+[->-[>]<<]<[->[-]<]<[-<>>[-]+<<]>>[-<<+>>]>>[-]<[-]<[-]<[-]");
-                vm.cellPointer -= 4;
-                push(REFERENCE_VAL(vm.cellPointer-1));
+                printf("<[->>>+<<<]<[->>>+<<<]>+>>+>+<[->-[>]<<]<[->[-]<]<[-<>>[-]+<<]>>[-<<+>>]>>[-]<[-]<[-]<[-]");
+                vm.cellPointer--;
             };
             break;
-            // case OP_NEGATE: push(-pop()); break;
-            case OP_ADD: {
-                // if(IS_STRING(peek(0)) && IS_STRING(peek(1))) {
-                //     concatenate();
-                // } else
 
-                // Optimizations for compiler
-                if(IS_NUMBER(peek(0)) && IS_NUMBER(peek(1))) {
-                    uint8_t b = AS_NUMBER(pop());
-                    uint8_t a = AS_NUMBER(pop());
-                    push(NUMBER_VAL(a+b));
-                } else {
-                    setCell(pop()); // Right
-                    setCell(pop()); // Left
-                    printf("<[-<+>]");
-                    vm.cellPointer--;
-                    push(REFERENCE_VAL(vm.cellPointer-1));
-                }
+            case OP_ADD:
+                printf("<[-<+>]");
+                vm.cellPointer--;
                 break;
-            }
             case OP_SUBTRACT:
-                // Optimizations for compiler
-                if(IS_NUMBER(peek(0)) && IS_NUMBER(peek(1))) {
-                    uint8_t b = AS_NUMBER(pop());
-                    uint8_t a = AS_NUMBER(pop());
-                    push(NUMBER_VAL(a-b));
-                } else {
-                    Value right = pop();
-                    setCell(pop()); // Left
-                    setCell(right); // Right
-                    printf("<[-<->]");
-                    vm.cellPointer--;
-                    push(REFERENCE_VAL(vm.cellPointer-1));
-                }
+                printf("<[-<->]");
+                vm.cellPointer--;
                 break;
             case OP_MULTIPLY:
-                if(IS_NUMBER(peek(0)) && IS_NUMBER(peek(1))) {
-                    uint8_t b = AS_NUMBER(pop());
-                    uint8_t a = AS_NUMBER(pop());
-                    push(NUMBER_VAL(a * b));
-                } else {
-                    setCell(pop()); // Right
-                    setCell(pop()); // Left
                     /*
-                     // Layout will be [R][L][L'][Result]
-                     <<[- // Loop for R
-                        >[->+>+<<] // Add L to L' and Result
-                        >[-<+>] // Move L' into L
+                     // Layout will be [L][R][R'][Result]
+                     <<[- // Loop for L
+                        >[->+>+<<] // Add R to R' and Result
+                        >[-<+>] // Move R' into R
                      <<]
-                     >>>[-<<<+>>>] // Copy Result into R
-                     <<[-] // Zero out L
+                     >>>[-<<<+>>>] // Copy Result into L
+                     <<[-] // Zero out R
                      */
                     printf("<<[->[->+>+<<]>[-<+>]<<]>>>[-<<<+>>>]<<[-]");
                     vm.cellPointer--;
-                    push(REFERENCE_VAL(vm.cellPointer-1));
-                }
                 break;
-            case OP_DIVIDE: {
+            case OP_DIVIDE:
                 /*
                  * SEE https://esolangs.org/wiki/Brainfuck_algorithms#Divmod
                  # Set up for this senario
@@ -445,44 +390,30 @@ static InterpretResult run() {
                  # Copy 4 into 1, and zero out 2 and 3
                  >>>[-<<<+>>>]<[-]<[-]
                  */
-                Value right = pop();
-                setCell(pop()); // Left
-                setCell(right); // Right
                 printf("+<<[->-[>+>>]>[[-<+>]+>+>>]<<<<<]>>>[-<<<+>>>]<[-]<[-]");
                 vm.cellPointer--;
-                push(REFERENCE_VAL(vm.cellPointer-1));
-            } break;
+            break;
             case OP_NOT:
-                setCell(pop());
                 /* [operand][result]
                     +          // Set result to 1
                     <[[-]>-<]  // If the operand is > 0, clear it, then set result to 0
                     >[-<+>]    // Move result into operand
                 */
                 printf("+<[[-]>-<]>[-<+>]");
-                push(REFERENCE_VAL(vm.cellPointer-1));
                 break;
-            // case OP_NEGATE:
-                // if (!IS_NUMBER(peek(0))) {
-                //   runtimeError("Operand must be a number.");
-                //   return INTERPRET_RUNTIME_ERROR;
-                // }
-                // push(NUMBER_VAL(-AS_NUMBER(pop())));
-                // break;
-            case OP_PRINT: {
-                setCell(pop());
-                printf("<.[-]"); // Print previous cell then zero it out
+            case OP_PRINT:
+                printf("<.[-]");
                 vm.cellPointer--;
                 break;
-            }
             case OP_JUMP: {
                 uint16_t offset = READ_SHORT();
                 frame->ip += offset;
                 break;
             }
             case OP_JUMP_IF_FALSE: {
-                uint16_t offset = READ_SHORT();
-                if(isFalsey(peek(0))) frame->ip += offset;
+                // TODO: not implemented
+                // uint16_t offset = READ_SHORT();
+                // if(isFalsey(peek(0))) frame->ip += offset;
                 break;
             }
             // If and else uses a flag cell after the condition to
@@ -490,32 +421,33 @@ static InterpretResult run() {
             // The content between these three commands must end at the
             // cell it started at
             case OP_IF:
-                setCell(pop());
                 printf("+<[[-]>->");
-                vm.scopeBacktrack[vm.scopeCount++] = ++vm.cellPointer;
-                if (vm.scopeCount == SCOPE_MAX) {
-                    runtimeError("Stack overflow.");
-                    return false;
-                }
+                vm.cellPointer++;
+                //vm.scopeBacktrack[vm.scopeCount++] = ++vm.cellPointer;
+                // if (vm.scopeCount == SCOPE_MAX) {
+                //     runtimeError("Stack overflow.");
+                //     return false;
+                // }
                 break;
             case OP_ELSE:
                 // Do not remove the back track, since it needs to happen again
-                backTrackTo(vm.scopeBacktrack[vm.scopeCount-1]);
+                //backTrackTo(vm.scopeBacktrack[vm.scopeCount-1]);
                 printf("<<]>[[-]>");
                 break;
             case OP_ENDIF:
-                backTrackTo(vm.scopeBacktrack[--vm.scopeCount]);
+                //backTrackTo(vm.scopeBacktrack[--vm.scopeCount]);
                 printf("<]<[-]");
                 vm.cellPointer -= 2; // Condition and flag are clear
                 break;
-            case OP_SET_CELL:
-                setCell(peek(0));
+            case OP_DUP:
+                copyCell(vm.cellPointer-1);
                 break;
             case OP_SET_OUTER:
-                // -3 for Ref, Condition, If/Else 1/0
-                setReference(vm.scopeBacktrack[vm.scopeCount-1] - 3, pop());
+                // -3 for 0, If/Else 1/0, Condition, Ref
+                setReference(vm.cellPointer - 4);
                 break;
             case OP_PUSH_REF:
+                break;
                 push(REFERENCE_VAL(vm.cellPointer-1));
                 break;
             case OP_LOOP: {
@@ -524,14 +456,16 @@ static InterpretResult run() {
                 break;
             }
             case OP_CALL: {
-                int argCount = READ_BYTE();
-                if(!callValue(peek(argCount), argCount)){
-                    return INTERPRET_RUNTIME_ERROR;
-                }
-                frame = &vm.frames[vm.frameCount -1];
+                // TODO: Not implemented
+                // int argCount = READ_BYTE();
+                // if(!callValue(peek(argCount), argCount)){
+                //     return INTERPRET_RUNTIME_ERROR;
+                // }
+                // frame = &vm.frames[vm.frameCount -1];
                 break;
             }
             case OP_CLOSURE: {
+                // TODO: not implemented
                 ObjFunction* function = AS_FUNCTION(READ_CONSTANT());
                 ObjClosure* closure = newClosure(function);
                 push(OBJ_VAL(closure));
@@ -547,24 +481,25 @@ static InterpretResult run() {
                 break;
             }
             case OP_CLOSE_UPVALUE:
+                // TODO: not implemented
                 closeUpvalues(vm.stackTop - 1);
                 pop();
                 break;
             case OP_RETURN: {
+                // TODO: not implemented
                 return INTERPRET_OK;
-                // TODO: implement
-                Value result = pop();
-                closeUpvalues(frame->slots);
-                vm.frameCount --;
-                if(vm.frameCount == 0) {
-                    pop();
-                    return INTERPRET_OK;
-                }
+                // Value result = pop();
+                // closeUpvalues(frame->slots);
+                // vm.frameCount --;
+                // if(vm.frameCount == 0) {
+                //     pop();
+                //     return INTERPRET_OK;
+                // }
 
-                vm.stackTop = frame->slots;
-                push(result);
-                frame = &vm.frames[vm.frameCount -1];
-                break;
+                // vm.stackTop = frame->slots;
+                // push(result);
+                // frame = &vm.frames[vm.frameCount -1];
+                // break;
             }
         }
     }
@@ -578,10 +513,10 @@ InterpretResult interpret(const char* source) {
     ObjFunction* function = compile(source);
     if(function == NULL) return INTERPRET_COMPILE_ERROR;
 
-    push(OBJ_VAL(function));
+    pushVM(OBJ_VAL(function));
     ObjClosure* closure = newClosure(function);
-    pop();
-    push(OBJ_VAL(closure));
+    popVM();
+    pushVM(OBJ_VAL(closure));
     call(closure, 0);
 
     return run();

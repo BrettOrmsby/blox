@@ -30,10 +30,11 @@ typedef enum {
     OP_ELSE,
     OP_ENDIF,
     // Ands/Ors
-    OP_SET_CELL,
+    OP_DUP,
     OP_SET_OUTER,
     OP_PUSH_REF,
     OP_LOOP,
+    OP_ENDLOOP,
     OP_CALL,
     OP_CLOSURE,
     OP_CLOSE_UPVALUE,
