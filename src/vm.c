@@ -244,12 +244,12 @@ static InterpretResult run() {
 
     for(;;) {
         #ifdef DEBUG_TRACE_EXECUTION
-        // printf("\n");
-        // for(Value* slot = vm.stack; slot < vm.stackTop; slot++) {
-        //     printf("[ ");
-        //     printValue(*slot);
-        //     printf(" ]");
-        // }
+        printf("\n");
+        for(Value* slot = vm.stack; slot < vm.stackTop; slot++) {
+            printf("{ ");
+            printValue(*slot);
+            printf(" }");
+        }
         printf("\n");
         disassembleInstruction(&frame->closure->function->chunk, (int)(frame->ip - frame->closure->function->chunk.code));
         printf("Cellpointer: %d\n", vm.cellPointer);
@@ -266,7 +266,6 @@ static InterpretResult run() {
             case OP_FALSE: push(BOOL_VAL(false)); break;
             case OP_POP: pop(); break;
             case OP_GET_LOCAL: {
-                // TODO: not implemented
                 uint8_t slot = READ_BYTE();
                 push(frame->slots[slot]);
                 break;
@@ -282,9 +281,9 @@ static InterpretResult run() {
                 break;
             }
             case OP_SET_LOCAL: {
-                // TODO: not implemented
                 uint8_t slot = READ_BYTE();
-                frame->slots[slot] = REFERENCE_VAL(vm.cellPointer-1);
+                push(REFERENCE_VAL(vm.cellPointer-1)); // Duplicate the cell since an expression statement will pop it
+                setReference(AS_NUMBER(frame->slots[slot]));
                 break;
             }
             case OP_SET_GLOBAL: {
@@ -294,15 +293,23 @@ static InterpretResult run() {
                     runtimeError("Undefined variables '%s'.", name->chars);
                     return INTERPRET_RUNTIME_ERROR;
                 }
-                copyCell(vm.cellPointer-1); // Duplicate the cell since an expression statement will pop it
+                push(REFERENCE_VAL(vm.cellPointer-1)); // Duplicate the cell since an expression statement will pop it
                 setReference(AS_NUMBER(reference));
                 break;
             }
+            case OP_DEFINE_LOCAL:
+                // Cell pointer not -1 since this command comes before the constant/value that is being set to
+                pushVM(REFERENCE_VAL(vm.cellPointer));
+                break;
             case OP_DEFINE_GLOBAL: {
                 ObjString* name = READ_STRING();
                 tableSet(&vm.globals, name, REFERENCE_VAL(vm.cellPointer-1));
                 break;
             }
+            case OP_POP_LOCAL:
+                pop();
+                popVM();
+                break;
             case OP_GET_UPVALUE: {
                 // TODO: not implemented
                 uint8_t slot = READ_BYTE();
@@ -415,12 +422,6 @@ static InterpretResult run() {
                 frame->ip -= offset;
                 break;
             }
-            case OP_JUMP_IF_FALSE: {
-                // TODO: not implemented
-                // uint16_t offset = READ_SHORT();
-                // if(isFalsey(peek(0))) frame->ip += offset;
-                break;
-            }
             // If and else uses a flag cell after the condition to
             // conditionaly enter or skip the else block
             // The content between these three commands must end at the
@@ -445,7 +446,7 @@ static InterpretResult run() {
                 vm.cellPointer -= 2; // Condition and flag are clear
                 break;
             case OP_DUP:
-                copyCell(vm.cellPointer-1);
+                push(REFERENCE_VAL(vm.cellPointer-1));
                 break;
             case OP_SET_CELL:
                 setReference(vm.cellPointer - READ_BYTE());

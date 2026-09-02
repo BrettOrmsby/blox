@@ -230,9 +230,9 @@ static void endScope() {
 
     while(current->localCount > 0 && current->locals[current->localCount - 1].depth > current->scopeDepth) {
         if (current->locals[current->localCount - 1].isCaptured) {
-        emitByte(OP_CLOSE_UPVALUE);
+            emitByte(OP_CLOSE_UPVALUE);
         } else {
-        emitByte(OP_POP);
+            emitByte(OP_POP_LOCAL);
         }
         current->localCount--;
     }
@@ -329,6 +329,7 @@ static void declareVariable() {
         }
     }
     addLocal(*name);
+    emitByte(OP_DEFINE_LOCAL);
 }
 
 static uint8_t parseVariable(const char* errorMessage) {

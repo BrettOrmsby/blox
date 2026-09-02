@@ -1,8 +1,6 @@
 # Plan/Language Features Needed
 
 Order
-* Local Variables
-* Go back to ifs and clear values in stack too that were not used?
 * Functions
 * Input value
 * Modulu operator

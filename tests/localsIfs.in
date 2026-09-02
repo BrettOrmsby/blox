@@ -1,0 +1,30 @@
+var global = 89;
+{
+var a = 65;
+var b = 66;
+var two = 2;
+print a;
+print b;
+    if(1) {
+        var c = 67;
+        print c;
+        b = b + two;
+        print b; // D
+        print c;
+    } else {
+        var d = 68;
+        print d;
+        d = d + two;
+        print d;
+    }
+    print a;
+    var e = 69;
+    print e;
+    {
+        var f = 70;
+        print f;
+        print a;
+    }
+    print a + two;
+    print a;
+}
