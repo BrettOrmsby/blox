@@ -78,6 +78,7 @@ Value popVM() {
 static void pop() {
     printf("<[-]");
     vm.cellPointer--;
+    popVM();
 }
 
 void copyCell(int pos) {
@@ -133,8 +134,15 @@ static void push(Value value) {
                 break;
             }
         case VAL_OBJ:
-            fprintf(stderr, "NOT SUPPORTED: Object constants");
+            // TODO: is this needed?
+            // Objects are treated as 0 if they are not used in their special
+            // locations.
+            printf(">");
+            vm.cellPointer++;
+            pushVM(value);
+            return;
     }
+    pushVM(REFERENCE_VAL(vm.cellPointer));
     vm.cellPointer++;
 }
 
@@ -151,13 +159,7 @@ static void setReference(int pos) {
     for(int i = 0; i < dist; i++) printf(">");
     printf("]");
     vm.cellPointer--;
-}
-
-static void backTrackTo(int pos) {
-    while(vm.cellPointer > pos) {
-        printf("<[-]");
-        vm.cellPointer--;
-    }
+    popVM();
 }
 
 static bool call(ObjClosure* closure, int argCount) {
@@ -222,10 +224,6 @@ static void closeUpvalues(Value* last) {
         upvalue->location = &upvalue->closed;
         vm.openUpvalues = upvalue->next;
     }
-}
-
-static bool isFalsey(Value value) {
-    return IS_NIL(value) || (IS_BOOL(value) && !AS_BOOL(value));
 }
 
 static InterpretResult run() {
@@ -297,19 +295,12 @@ static InterpretResult run() {
                 setReference(AS_NUMBER(reference));
                 break;
             }
-            case OP_DEFINE_LOCAL:
-                // Cell pointer not -1 since this command comes before the constant/value that is being set to
-                pushVM(REFERENCE_VAL(vm.cellPointer));
-                break;
             case OP_DEFINE_GLOBAL: {
                 ObjString* name = READ_STRING();
                 tableSet(&vm.globals, name, REFERENCE_VAL(vm.cellPointer-1));
+                popVM(); // Globals do not remain on the value stack since they are kept in a table
                 break;
             }
-            case OP_POP_LOCAL:
-                pop();
-                popVM();
-                break;
             case OP_GET_UPVALUE: {
                 // TODO: not implemented
                 uint8_t slot = READ_BYTE();
@@ -330,11 +321,17 @@ static InterpretResult run() {
                 //       ^      ^      ^        ^
                 printf("<[-<->]<[[-]>+<]+>[-<->]");
                 vm.cellPointer--;
+                popVM();
+                popVM();
+                pushVM(REFERENCE_VAL(vm.cellPointer-1));
                 break;
             case OP_GREATER:  {
                 // See below for less than to understand. The left and right are just swaped.
                 printf("<[->>+<<]<[->>>>+<<<<]>+>>+>+<[->-[>]<<]<[->[-]<]<[-<>>[-]+<<]>>[-<<+>>]>>[-]<[-]<[-]<[-]");
                 vm.cellPointer--;
+                popVM();
+                popVM();
+                pushVM(REFERENCE_VAL(vm.cellPointer-1));
             }
             break;
             case OP_LESS: {
@@ -362,16 +359,25 @@ static InterpretResult run() {
                 // >>[-]<[-]<[-]<[-] // Zero out 5, 4, 3, 2
                 printf("<[->>>+<<<]<[->>>+<<<]>+>>+>+<[->-[>]<<]<[->[-]<]<[-<>>[-]+<<]>>[-<<+>>]>>[-]<[-]<[-]<[-]");
                 vm.cellPointer--;
+                popVM();
+                popVM();
+                pushVM(REFERENCE_VAL(vm.cellPointer-1));
             };
             break;
 
             case OP_ADD:
                 printf("<[-<+>]");
                 vm.cellPointer--;
+                popVM();
+                popVM();
+                pushVM(REFERENCE_VAL(vm.cellPointer-1));
                 break;
             case OP_SUBTRACT:
                 printf("<[-<->]");
                 vm.cellPointer--;
+                popVM();
+                popVM();
+                pushVM(REFERENCE_VAL(vm.cellPointer-1));
                 break;
             case OP_MULTIPLY:
                     /*
@@ -385,6 +391,9 @@ static InterpretResult run() {
                      */
                     printf("<<[->[->+>+<<]>[-<+>]<<]>>>[-<<<+>>>]<<[-]");
                     vm.cellPointer--;
+                    popVM();
+                    popVM();
+                    pushVM(REFERENCE_VAL(vm.cellPointer-1));
                 break;
             case OP_DIVIDE:
                 /*
@@ -399,6 +408,9 @@ static InterpretResult run() {
                  */
                 printf("+<<[->-[>+>>]>[[-<+>]+>+>>]<<<<<]>>>[-<<<+>>>]<[-]<[-]");
                 vm.cellPointer--;
+                popVM();
+                popVM();
+                pushVM(REFERENCE_VAL(vm.cellPointer-1));
             break;
             case OP_NOT:
                 /* [operand][result]
@@ -407,10 +419,13 @@ static InterpretResult run() {
                     >[-<+>]    // Move result into operand
                 */
                 printf("+<[[-]>-<]>[-<+>]");
+                popVM();
+                pushVM(REFERENCE_VAL(vm.cellPointer-1));
                 break;
             case OP_PRINT:
                 printf("<.[-]");
                 vm.cellPointer--;
+                popVM();
                 break;
             case OP_JUMP: {
                 uint16_t offset = READ_SHORT();
@@ -429,19 +444,12 @@ static InterpretResult run() {
             case OP_IF:
                 printf("+<[[-]>->");
                 vm.cellPointer++;
-                //vm.scopeBacktrack[vm.scopeCount++] = ++vm.cellPointer;
-                // if (vm.scopeCount == SCOPE_MAX) {
-                //     runtimeError("Stack overflow.");
-                //     return false;
-                // }
+                popVM(); // for the condition
                 break;
             case OP_ELSE:
-                // Do not remove the back track, since it needs to happen again
-                //backTrackTo(vm.scopeBacktrack[vm.scopeCount-1]);
                 printf("<<]>[[-]>");
                 break;
             case OP_ENDIF:
-                //backTrackTo(vm.scopeBacktrack[--vm.scopeCount]);
                 printf("<]<[-]");
                 vm.cellPointer -= 2; // Condition and flag are clear
                 break;

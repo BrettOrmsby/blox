@@ -232,7 +232,7 @@ static void endScope() {
         if (current->locals[current->localCount - 1].isCaptured) {
             emitByte(OP_CLOSE_UPVALUE);
         } else {
-            emitByte(OP_POP_LOCAL);
+            emitByte(OP_POP);
         }
         current->localCount--;
     }
@@ -329,7 +329,6 @@ static void declareVariable() {
         }
     }
     addLocal(*name);
-    emitByte(OP_DEFINE_LOCAL);
 }
 
 static uint8_t parseVariable(const char* errorMessage) {
@@ -572,7 +571,7 @@ static void function(FunctionType type) {
         } while (match(TOKEN_COMMA));
     }
     consume(TOKEN_RIGHT_PAREN, "Expect ')' after parameters.");
-    consume(TOKEN_LEFT_BRACE, "EXPECT '{' before the function body.");
+    consume(TOKEN_LEFT_BRACE, "Expect '{' before the function body.");
     block();
 
     ObjFunction* function = endCompiler();

@@ -1,8 +1,10 @@
 # Plan/Language Features Needed
 
 Order
-* Functions
+* Functions  
+  fun tester(someParam, someOtherParam) {print someParam; return someOtherParam;} tester(8, 9);
 * Input value
+* String
 * Modulu operator
 * Arrays
 
