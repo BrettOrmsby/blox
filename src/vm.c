@@ -75,6 +75,10 @@ Value popVM() {
     return removed;
 }
 
+static Value peekVM(int distance) {
+    return vm.stackTop[-1 - distance];
+}
+
 static void pop() {
     printf("<[-]");
     vm.cellPointer--;
@@ -279,8 +283,9 @@ static InterpretResult run() {
                 break;
             }
             case OP_SET_LOCAL: {
+                // TODO: test local fucntions (if possible)
                 uint8_t slot = READ_BYTE();
-                push(REFERENCE_VAL(vm.cellPointer-1)); // Duplicate the cell since an expression statement will pop it
+                push(peekVM(0)); // Duplicate the cell since an expression statement will pop it
                 setReference(AS_NUMBER(frame->slots[slot]));
                 break;
             }
@@ -291,13 +296,17 @@ static InterpretResult run() {
                     runtimeError("Undefined variables '%s'.", name->chars);
                     return INTERPRET_RUNTIME_ERROR;
                 }
-                push(REFERENCE_VAL(vm.cellPointer-1)); // Duplicate the cell since an expression statement will pop it
+                if(!IS_REFERENCE(reference)) {
+                    runtimeError("Invalid reassign to '%s'.", name->chars);
+                    return INTERPRET_RUNTIME_ERROR;
+                }
+                push(peekVM(0)); // Duplicate the cell since an expression statement will pop it
                 setReference(AS_NUMBER(reference));
                 break;
             }
             case OP_DEFINE_GLOBAL: {
                 ObjString* name = READ_STRING();
-                tableSet(&vm.globals, name, REFERENCE_VAL(vm.cellPointer-1));
+                tableSet(&vm.globals, name, peekVM(0));
                 popVM(); // Globals do not remain on the value stack since they are kept in a table
                 break;
             }
@@ -468,12 +477,11 @@ static InterpretResult run() {
                 vm.cellPointer--;
                 break;
             case OP_CALL: {
-                // TODO: Not implemented
-                // int argCount = READ_BYTE();
-                // if(!callValue(peek(argCount), argCount)){
-                //     return INTERPRET_RUNTIME_ERROR;
-                // }
-                // frame = &vm.frames[vm.frameCount -1];
+                int argCount = READ_BYTE();
+                if(!callValue(peekVM(argCount), argCount)){
+                    return INTERPRET_RUNTIME_ERROR;
+                }
+                frame = &vm.frames[vm.frameCount -1];
                 break;
             }
             case OP_CLOSURE: {
@@ -498,20 +506,39 @@ static InterpretResult run() {
                 pop();
                 break;
             case OP_RETURN: {
-                // TODO: not implemented
-                return INTERPRET_OK;
-                // Value result = pop();
-                // closeUpvalues(frame->slots);
-                // vm.frameCount --;
-                // if(vm.frameCount == 0) {
-                //     pop();
-                //     return INTERPRET_OK;
-                // }
+                // TODO: not fully* implemented
+                // TODO: need to use the poped value, handle special case/common where
+                // it is a reference value than needs to be copied back.
+                pop();
+                closeUpvalues(frame->slots);
+                vm.frameCount --;
+                if(vm.frameCount == 0) {
+                    pop();
+                    return INTERPRET_OK;
+                }
 
-                // vm.stackTop = frame->slots;
-                // push(result);
-                // frame = &vm.frames[vm.frameCount -1];
-                // break;
+                vm.stackTop = frame->slots;
+                // move the cell at result location back to the current location
+                // for(int i = vm.cellPointer; i < resultLocation; i++) {
+                //     printf(">");
+                // }
+                // printf("[-");
+                // for(int i = resultLocation; i > vm.cellPointer; i--) {
+                //     printf("<");
+                // }
+                // printf("+");
+                // for(int i = vm.cellPointer; i < resultLocation; i++) {
+                //     printf(">");
+                // }
+                // printf("]");
+                // for(int i = resultLocation; i > vm.cellPointer; i--) {
+                //     printf("<");
+                // }
+                // printf(">");
+                // push(RE)
+                push(BOOL_VAL(true));
+                frame = &vm.frames[vm.frameCount -1];
+                break;
             }
         }
     }

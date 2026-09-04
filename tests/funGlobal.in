@@ -1,0 +1,23 @@
+fun trialOne(a, b) {
+    print a + b - 65;
+    print a;
+    print b;
+}
+
+fun minus(a, b) {
+    print a - b;
+}
+
+fun double(a) {
+  var twice = 2;
+  twice = 2 * a;
+  print twice;
+}
+
+trialOne(65, 66);
+minus(80, 10); // F
+double(36); // H
+double(37); // J
+
+var thirtyEight = 38;
+double(38);

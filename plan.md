@@ -2,7 +2,7 @@
 
 Order
 * Functions  
-  fun tester(someParam, someOtherParam) {print someParam; return someOtherParam;} tester(8, 9);
+  fun tester(someParam, someOtherParam) {print someParam; return someOtherParam;} tester(65, 66);
 * Input value
 * String
 * Modulu operator
