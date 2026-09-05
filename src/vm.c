@@ -287,6 +287,7 @@ static InterpretResult run() {
                 uint8_t slot = READ_BYTE();
                 push(peekVM(0)); // Duplicate the cell since an expression statement will pop it
                 setReference(AS_NUMBER(frame->slots[slot]));
+                // TODO: what if not a ref
                 break;
             }
             case OP_SET_GLOBAL: {
@@ -319,7 +320,9 @@ static InterpretResult run() {
             case OP_SET_UPVALUE: {
                 // TODO: not implemented
                 uint8_t slot = READ_BYTE();
-                *frame->closure->upvalues[slot]->location = REFERENCE_VAL(vm.cellPointer-1);//peek(0);
+                push(peekVM(0)); // Duplicate the cell since an expression statement will pop it
+                // TODO: what if not a ref
+                setReference(AS_NUMBER(*frame->closure->upvalues[slot]->location));
                 break;
             }
             case OP_EQUAL:

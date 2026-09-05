@@ -1,0 +1,23 @@
+fun outer(a) {
+    var val = a;
+    fun inner(num) {
+        val = val + num;
+
+        if(num == 0) {
+            val = val - 3;
+        }
+        print(val);
+    }
+
+    print(val);
+    inner(2);
+    print(val);
+    inner(2);
+    print(val);
+    inner(1);
+    print(val);
+    inner(0);
+    print(val);
+}
+
+outer(65);
