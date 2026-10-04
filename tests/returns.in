@@ -1,0 +1,27 @@
+fun plusOne(a) {
+    returns a + 1;
+}
+
+fun conditional(a, b) {
+  if(a > b) {
+    returns 65;
+  } else if(a == b) {
+    returns 67;
+  } else {
+    returns 66;
+  }
+}
+
+fun locals(a) {
+    var c = 67;
+    returns c + a;
+}
+
+fun void(a, b) {}
+
+print plusOne(65);
+print conditional(1, 2);
+print conditional(2, 1);
+print conditional(1, 1);
+print locals(2);
+print 65 + void(434, 43);

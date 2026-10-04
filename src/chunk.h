@@ -22,6 +22,7 @@ typedef enum {
     OP_GREATER,
     OP_LESS,
 
+    OP_RETURNS,
     OP_RETURN,
     // OP_NEGATE,
     OP_PRINT,
