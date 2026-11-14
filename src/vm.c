@@ -82,7 +82,13 @@ static Value peekVM(int distance) {
 static void pop() {
     printf("<[-]");
     vm.cellPointer--;
-    popVM();
+    Value popped = popVM();
+    if(IS_ARRAY(popped)) {
+        for(int i = 0; i < AS_NUMBER(popped)-1;i++) {
+            printf("<[-]");
+            vm.cellPointer--;
+        }
+    }
 }
 
 void copyCell(int pos) {
@@ -136,6 +142,16 @@ static void push(Value value) {
                 }
                 printf(">");
                 break;
+            }
+        case VAL_ARRAY:
+            {
+                pushVM(REFERENCE_VAL(vm.cellPointer));
+                int size = AS_NUMBER(value);
+                for(int i = 0; i <= size; i++) {
+                    printf(">");
+                }
+                vm.cellPointer += size + 1;
+                return;
             }
         case VAL_OBJ:
             // TODO: is this needed?
@@ -270,6 +286,7 @@ static InterpretResult run() {
                 printf(",>");
                 pushVM(REFERENCE_VAL(vm.cellPointer));
                 vm.cellPointer++;
+                break;
             case OP_POP: pop(); break;
             case OP_GET_LOCAL: {
                 uint8_t slot = READ_BYTE();
@@ -307,6 +324,9 @@ static InterpretResult run() {
                 }
                 push(peekVM(0)); // Duplicate the cell since an expression statement will pop it
                 setReference(AS_NUMBER(reference));
+                break;
+            }
+            case OP_SET_ARRAY: {
                 break;
             }
             case OP_DEFINE_GLOBAL: {
@@ -483,6 +503,9 @@ static InterpretResult run() {
                 printf("<]");
                 vm.cellPointer--;
                 break;
+            case OP_INDEX: {
+                break;
+            }
             case OP_CALL: {
                 int argCount = READ_BYTE();
                 if(!callValue(peekVM(argCount), argCount)){

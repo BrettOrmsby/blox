@@ -33,7 +33,7 @@ typedef enum {
     PREC_TERM,  //    + -
     PREC_FACTOR,    // * /
     PREC_UNARY,  //    !
-    PREC_CALL,      // . ()
+    PREC_CALL,      // . () []
     PREC_PRIMARY,
 } Precedence;
 
@@ -402,6 +402,18 @@ static void call(bool canAssign) {
     emitBytes(OP_CALL, argCount);
 }
 
+static void arrayIndex(bool canAssign) {
+    expression();
+    consume(TOKEN_RIGHT_BRACKET, "Expect ']' after indexing.");
+
+    if (canAssign && match(TOKEN_EQUAL)) {
+        expression();
+        emitByte(OP_SET_ARRAY);
+    } else {
+        emitByte(OP_INDEX);
+    }
+}
+
 static void literal(bool canAssign) {
     switch (parser.previous.type) {
         case TOKEN_FALSE: emitByte(OP_FALSE); break;
@@ -476,6 +488,8 @@ static void unary(bool canAssign) {
 ParseRule rules[] = {
   [TOKEN_LEFT_PAREN]    = {grouping, call,   PREC_CALL},
   [TOKEN_RIGHT_PAREN]   = {NULL,     NULL,   PREC_NONE},
+  [TOKEN_LEFT_BRACKET]  = {NULL, arrayIndex,   PREC_CALL},
+  [TOKEN_RIGHT_BRACKET] = {NULL,     NULL,   PREC_NONE},
   [TOKEN_LEFT_BRACE]    = {NULL,     NULL,   PREC_NONE},
   [TOKEN_RIGHT_BRACE]   = {NULL,     NULL,   PREC_NONE},
   [TOKEN_COMMA]         = {NULL,     NULL,   PREC_NONE},
@@ -511,6 +525,7 @@ ParseRule rules[] = {
   [TOKEN_THIS]          = {NULL,     NULL,   PREC_NONE},
   [TOKEN_TRUE]          = {literal,     NULL,   PREC_NONE},
   [TOKEN_VAR]           = {NULL,     NULL,   PREC_NONE},
+  [TOKEN_ARRAY]         = {NULL,     NULL,   PREC_NONE},
   [TOKEN_WHILE]         = {NULL,     NULL,   PREC_NONE},
   [TOKEN_ERROR]         = {NULL,     NULL,   PREC_NONE},
   [TOKEN_EOF]           = {NULL,     NULL,   PREC_NONE},
@@ -598,6 +613,25 @@ static void varDeclaration() {
     } else {
         emitByte(OP_NIL);
     }
+    consume(TOKEN_SEMICOLON, "Expect ';' after variable declaration.");
+
+    defineVariable(global);
+}
+
+static void arrayDeclaration() {
+    uint8_t global = parseVariable("Expect array name.");
+
+    consume(TOKEN_LEFT_BRACKET, "Expect '[' after array name.");
+    if(match(TOKEN_NUMBER)) {
+        int size = strtoul(parser.previous.start, NULL, 0);
+        if(size == 0) {
+            error("Expect non-zero array size.");
+        }
+        emitConstant(ARRAY_VAL(size));
+    } else {
+        error("Expect array size.");
+    }
+    consume(TOKEN_RIGHT_BRACKET, "Expect ']' after array size");
     consume(TOKEN_SEMICOLON, "Expect ';' after variable declaration.");
 
     defineVariable(global);
@@ -721,6 +755,7 @@ static void synchronize() {
             case TOKEN_CLASS:
             case TOKEN_FUN:
             case TOKEN_VAR:
+            case TOKEN_ARRAY:
             case TOKEN_FOR:
             case TOKEN_IF:
             case TOKEN_WHILE:
@@ -739,6 +774,8 @@ static void declaration() {
         funDeclaration();
     } else if(match(TOKEN_VAR)) {
         varDeclaration();
+    } else if(match(TOKEN_ARRAY)) {
+        arrayDeclaration();
     } else {
         statement();
     }

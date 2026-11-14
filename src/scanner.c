@@ -105,7 +105,14 @@ static TokenType checkKeyword(int start, int length, const char*rest, TokenType 
 }
 static TokenType identifierType() {
     switch (scanner.start[0]) {
-        case 'a': return checkKeyword(1, 2, "nd", TOKEN_AND);
+        case 'a':
+              if (scanner.current - scanner.start > 1) {
+                switch (scanner.start[1]) {
+                  case 'n': return checkKeyword(2, 1, "d", TOKEN_AND);
+                  case 'r': return checkKeyword(2, 3, "ray", TOKEN_ARRAY);
+                }
+              }
+              break;
         case 'c': return checkKeyword(1, 4, "lass", TOKEN_CLASS);
         case 'e': return checkKeyword(1, 3, "lse", TOKEN_ELSE);
         case 'f':
@@ -182,6 +189,8 @@ Token scanToken() {
     switch (c) {
         case '(': return makeToken(TOKEN_LEFT_PAREN);
         case ')': return makeToken(TOKEN_RIGHT_PAREN);
+        case '[': return makeToken(TOKEN_LEFT_BRACKET);
+        case ']': return makeToken(TOKEN_RIGHT_BRACKET);
         case '{': return makeToken(TOKEN_LEFT_BRACE);
         case '}': return makeToken(TOKEN_RIGHT_BRACE);
         case ';': return makeToken(TOKEN_SEMICOLON);
