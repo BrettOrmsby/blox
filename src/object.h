@@ -11,6 +11,7 @@
 #define IS_FUNCTION(value) isObjType(value, OBJ_FUNCTION)
 #define IS_NATIVE(value)       isObjType(value, OBJ_NATIVE) // TODO: remove
 #define IS_STRING(value) isObjType(value, OBJ_STRING)
+#define IS_ARRAY(value) isObjType(value, OBJ_ARRAY)
 
 #define AS_CLOSURE(value)  ((ObjClosure*)AS_OBJ(value))
 #define AS_FUNCTION(value)  ((ObjFunction*)AS_OBJ(value))
@@ -18,6 +19,7 @@
 #define AS_NATIVE(value) \
     (((ObjNative*)AS_OBJ(value))->function)
 #define AS_STRING(value)  ((ObjString*)AS_OBJ(value))
+#define AS_ARRAY(value)  ((ObjArray*)AS_OBJ(value))
 #define AS_CSTRING(value)  (((ObjString*)AS_OBJ(value))->chars)
 
 typedef enum {
@@ -26,6 +28,7 @@ typedef enum {
     OBJ_FUNCTION,
     OBJ_NATIVE, //  TODO: remove
     OBJ_CLOSURE,
+    OBJ_ARRAY,
 } ObjType;
 
 struct Obj {
@@ -57,6 +60,12 @@ struct ObjString {
     uint32_t hash;
 };
 
+struct ObjArray {
+    Obj obj;
+    int length;
+    int cellStart;
+};
+
 typedef struct ObjUpvalue {
     Obj obj;
     Value* location;
@@ -76,6 +85,7 @@ ObjFunction* newFunction();
 ObjNative* newNative(NativeFn function); // TODO: remove
 ObjString* takeString(char* chars, int length);
 ObjString* copyString(const char* chars, int length);
+ObjArray* newArray(int length);
 ObjUpvalue* newUpvalue(Value* slot);
 void printObject(Value value);
 

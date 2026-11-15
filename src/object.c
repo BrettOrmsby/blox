@@ -98,6 +98,13 @@ ObjString* copyString(const char* chars, int length) {
     return allocateString(heapChars, length, hash);
 }
 
+ObjArray* newArray(int length) {
+    ObjArray* arr = ALLOCATE_OBJ(ObjArray, OBJ_ARRAY);
+    arr->cellStart = 0;
+    arr->length = length;
+    return arr;
+}
+
 ObjUpvalue* newUpvalue(Value* slot) {
     ObjUpvalue* upvalue = ALLOCATE_OBJ(ObjUpvalue, OBJ_UPVALUE);
     upvalue->closed = NIL_VAL;
@@ -127,6 +134,9 @@ void printObject(Value value) {
               break;
         case OBJ_STRING:
             printf("%s", AS_CSTRING(value));
+            break;
+        case OBJ_ARRAY:
+            printf("ARR: %d", AS_ARRAY(value)->length);
             break;
         case OBJ_UPVALUE:
             printf("upvalue");

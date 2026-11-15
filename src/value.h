@@ -5,14 +5,13 @@
 
 typedef struct Obj Obj;
 typedef struct ObjString ObjString;
-
+typedef struct ObjArray ObjArray;
 typedef enum {
     VAL_BOOL,
     VAL_NIL,
     VAL_NUMBER,
     VAL_OBJ,
     VAL_REFERENCE,
-    VAL_ARRAY,
 } ValueType;
 
 typedef struct {
@@ -29,7 +28,6 @@ typedef struct {
 #define IS_NUMBER(value) ((value).type == VAL_NUMBER)
 #define IS_OBJ(value) ((value).type == VAL_OBJ)
 #define IS_REFERENCE(value) ((value).type == VAL_REFERENCE)
-#define IS_ARRAY(value) ((value).type == VAL_ARRAY)
 
 #define AS_BOOL(value) ((value).as.boolean)
 #define AS_NUMBER(value) ((value).as.number)
@@ -40,7 +38,6 @@ typedef struct {
 #define NUMBER_VAL(value) ((Value){VAL_NUMBER, {.number = value}})
 #define OBJ_VAL(object) ((Value){VAL_OBJ, {.obj = (Obj*)object}})
 #define REFERENCE_VAL(value) ((Value){VAL_REFERENCE, {.number = value}})
-#define ARRAY_VAL(value) ((Value){VAL_ARRAY, {.number = value}})
 
 typedef struct {
     int capacity;

@@ -625,9 +625,9 @@ static void arrayDeclaration() {
     if(match(TOKEN_NUMBER)) {
         int size = strtoul(parser.previous.start, NULL, 0);
         if(size == 0) {
-            error("Expect non-zero array size.");
+            error("Expect non-zero array length.");
         }
-        emitConstant(ARRAY_VAL(size));
+        emitConstant(OBJ_VAL(newArray(size)));
     } else {
         error("Expect array size.");
     }

@@ -1,0 +1,14 @@
+array a[4];
+
+for(var i = 0; i < 4; i= i + 1) {
+    a[i] = i + 65;
+}
+
+print a[0];
+print a[1];
+print a[2];
+print a[3];
+
+var b = 70; //F
+
+print a[4];

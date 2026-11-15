@@ -77,6 +77,7 @@ static void blackenObject(Obj* object) {
     switch(object->type) {
         case OBJ_NATIVE:
         case OBJ_STRING:
+        case OBJ_ARRAY:
             break;
         case OBJ_CLOSURE: {
             ObjClosure* closure = (ObjClosure*)object;
@@ -122,6 +123,10 @@ static void freeObject(Obj* object) {
             ObjString* string = (ObjString*)object;
             FREE_ARRAY(char, string->chars, string->length + 1);
             FREE(ObjString, object);
+            break;
+        }
+        case OBJ_ARRAY: {
+            FREE(ObjArray, object);
             break;
         }
         case OBJ_UPVALUE:

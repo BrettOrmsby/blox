@@ -1,0 +1,7 @@
+array a[4];
+a[2] = 66;
+a[1] = 65;
+a[0] = 67;
+print a[1];
+print a[2];
+print a[0];

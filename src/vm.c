@@ -84,7 +84,7 @@ static void pop() {
     vm.cellPointer--;
     Value popped = popVM();
     if(IS_ARRAY(popped)) {
-        for(int i = 0; i < AS_NUMBER(popped)-1;i++) {
+        for(int i = 0; i < AS_ARRAY(popped)->length-1;i++) {
             printf("<[-]");
             vm.cellPointer--;
         }
@@ -143,24 +143,27 @@ static void push(Value value) {
                 printf(">");
                 break;
             }
-        case VAL_ARRAY:
-            {
-                pushVM(REFERENCE_VAL(vm.cellPointer));
-                int size = AS_NUMBER(value);
-                for(int i = 0; i <= size; i++) {
-                    printf(">");
-                }
-                vm.cellPointer += size + 1;
-                return;
-            }
         case VAL_OBJ:
-            // TODO: is this needed?
-            // Objects are treated as 0 if they are not used in their special
-            // locations.
-            printf(">");
-            vm.cellPointer++;
-            pushVM(value);
-            return;
+            switch(AS_OBJ(value)->type) {
+                case OBJ_ARRAY: {
+                    pushVM(value);
+                    AS_ARRAY(value)->cellStart = vm.cellPointer;
+                    int length = AS_ARRAY(value)->length;
+                    for(int i = 0; i < length; i++) {
+                        printf(">");
+                    }
+                    vm.cellPointer += length;
+                    return;
+                }
+                default:
+                    // TODO: is this needed?
+                    // Objects are treated as 0 if they are not used in their special
+                    // locations.
+                    printf(">");
+                    vm.cellPointer++;
+                    pushVM(value);
+                    return;
+            }
     }
     pushVM(REFERENCE_VAL(vm.cellPointer));
     vm.cellPointer++;
@@ -263,6 +266,7 @@ static InterpretResult run() {
     for(;;) {
         #ifdef DEBUG_TRACE_EXECUTION
         printf("\n");
+        printf("Cellpointer: %d\n", vm.cellPointer);
         for(Value* slot = vm.stack; slot < vm.stackTop; slot++) {
             printf("{ ");
             printValue(*slot);
@@ -270,7 +274,6 @@ static InterpretResult run() {
         }
         printf("\n");
         disassembleInstruction(&frame->closure->function->chunk, (int)(frame->ip - frame->closure->function->chunk.code));
-        printf("Cellpointer: %d\n", vm.cellPointer);
         #endif
         uint8_t instruction;
         switch(instruction = READ_BYTE()) {
@@ -290,7 +293,15 @@ static InterpretResult run() {
             case OP_POP: pop(); break;
             case OP_GET_LOCAL: {
                 uint8_t slot = READ_BYTE();
-                push(frame->slots[slot]);
+                Value value = frame->slots[slot];
+                if(IS_ARRAY(value)) {
+                    // Do not push the full array, only the first value, but push the full array to the vm
+                    push(REFERENCE_VAL(AS_ARRAY(value)->cellStart));
+                    popVM();
+                    pushVM(value);
+                } else {
+                    push(value);
+                }
                 break;
             }
             case OP_GET_GLOBAL: {
@@ -300,7 +311,14 @@ static InterpretResult run() {
                     runtimeError("Undefined variable '%s'.", name->chars);
                     return INTERPRET_RUNTIME_ERROR;
                 }
-                push(value);
+                if(IS_ARRAY(value)) {
+                    // Do not push the full array, only the first value, but push the full array to the vm
+                    push(REFERENCE_VAL(AS_ARRAY(value)->cellStart));
+                    popVM();
+                    pushVM(value);
+                } else {
+                    push(value);
+                }
                 break;
             }
             case OP_SET_LOCAL: {
@@ -327,6 +345,32 @@ static InterpretResult run() {
                 break;
             }
             case OP_SET_ARRAY: {
+                popVM(); // value
+                popVM();
+                // Array is popped in the set reference
+                Value arr = peekVM(0);
+                if(!IS_ARRAY(arr)) {
+                    runtimeError("Invalid index into non-array.");
+                    return INTERPRET_RUNTIME_ERROR;
+                }
+
+                // Start [firstArrEl][i][val]>[0]
+                // Move cells: [firstArrEl][val]>[0][i]
+                printf("<<[->>+<<]>[-<+>]");
+                // Copy val into firstArrayEl: [val][val][0]>[i]
+                printf("<<[-]>[-<+>>>>+<<<]>>>[-<<<+>>>]<");
+                // Create i 1s then go right after: [val][val][0][i][i-1][...][1]>[0]
+                printf("[[>]+[<]>-]+[>]<[-]");
+                // Move value to end: [val][0][0][i][i-1][...][1][0][val]>[0]
+                printf("<[<]<[->>[>]>+<<[<]<]>>[>]>>");
+                // Set reference cell to val: [val][0][0][i][i-1][...][1][0]>[0]
+                int startLoc = AS_ARRAY(arr)->cellStart;
+                int distToStart = startLoc - 2;
+                setReference(distToStart);
+                // Clear everything out: [val]>[0]
+                printf("<<[[-]<]<");
+                vm.cellPointer-=1; // since setreference already lowered by one
+                pushVM(REFERENCE_VAL(vm.cellPointer-1));
                 break;
             }
             case OP_DEFINE_GLOBAL: {
@@ -504,6 +548,30 @@ static InterpretResult run() {
                 vm.cellPointer--;
                 break;
             case OP_INDEX: {
+                popVM(); // index
+                Value arr = popVM();
+                if(!IS_ARRAY(arr)) {
+                    runtimeError("Invalid index into non-array.");
+                    return INTERPRET_RUNTIME_ERROR;
+                }
+
+                // Start [firstArrEl][i]>[0]
+                // Move index over: [firstArrEl]>[0][i]
+                printf("<[->+<]");
+                // Create i 1s then go right after: [firstArrEl][0][i][i-1][...][1]>[0]
+                printf(">[[>]+[<]>-]+[>]<[-]");
+                // Copy Cell back from distToStart into current position: [firstArrEl][0][i][i-1][...][1][x]>[0]
+                int startLoc = AS_ARRAY(arr)->cellStart; // TODO: might be wrong now
+                int distToStart = startLoc; // -1 for padded 0
+                copyCell(distToStart);
+                vm.cellPointer--;
+                // Drag current cell back over all the 1s: [firstArrEl][0]>[x]
+                printf("<<[->[-<+>]<<]");
+                // Move the cell back twice more to replace the firstArrEl: [x]>[0]
+                printf("<[-]>>[-<<+>>]<");
+
+                vm.cellPointer--;
+                pushVM(REFERENCE_VAL(vm.cellPointer-1));
                 break;
             }
             case OP_CALL: {
