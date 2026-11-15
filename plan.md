@@ -5,7 +5,6 @@ Order
   fun tester(someParam, someOtherParam) {print someParam; return someOtherParam;} tester(65, 66);
 * String
 * Modulu operator
-* Add characters '+'
 
 - integer that can span more than u8 since memory is big (u8 u32...?)
 - character

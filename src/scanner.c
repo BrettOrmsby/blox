@@ -176,6 +176,16 @@ static Token string() {
     return makeToken(TOKEN_STRING);
 }
 
+static Token character() {
+    if(!isAtEnd() && peek() != '\'') {
+        advance();
+    }
+    if(isAtEnd() || peek() != '\'') return errorToken("Unterminated character.");
+
+    advance();
+    return makeToken(TOKEN_CHAR);
+}
+
 Token scanToken() {
     skipWhitespace();
     scanner.start = scanner.current;
@@ -212,6 +222,7 @@ Token scanToken() {
         case '>':
             return makeToken(
                 match('=') ? TOKEN_GREATER_EQUAL : TOKEN_GREATER);
+        case '\'': return character();
         case '"': return string();
     }
 

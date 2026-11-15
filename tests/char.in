@@ -1,0 +1,5 @@
+var a = 'A';
+print a;
+var b = '';
+print a + b;
+// ''' is an error

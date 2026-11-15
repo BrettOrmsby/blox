@@ -446,6 +446,14 @@ static void string(bool canAssign) {
     emitConstant(OBJ_VAL(copyString(parser.previous.start + 1, parser.previous.length - 2)));
 }
 
+static void character(bool canAssing) {
+    if(parser.previous.length == 2) {
+        emitConstant(NUMBER_VAL(0));
+    } else {
+        emitConstant(NUMBER_VAL((int)*(parser.previous.start + 1)));
+    }
+}
+
 static void namedVariable(Token name, bool canAssign) {
     uint8_t getOp, setOp;
     int arg = resolveLocal(current, &name);
@@ -510,6 +518,7 @@ ParseRule rules[] = {
   [TOKEN_LESS_EQUAL]    = {NULL,     binary, PREC_COMPARISON},
   [TOKEN_IDENTIFIER]    = {variable,     NULL,   PREC_NONE},
   [TOKEN_STRING]        = {string,     NULL,   PREC_NONE},
+  [TOKEN_CHAR]          = {character,  NULL,   PREC_NONE},
   [TOKEN_NUMBER]        = {number,   NULL,   PREC_NONE},
   [TOKEN_AND]           = {NULL,     and_,   PREC_AND},
   [TOKEN_CLASS]         = {NULL,     NULL,   PREC_NONE},
