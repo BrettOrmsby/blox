@@ -158,11 +158,6 @@ static void emitJumpBack(int backTo) {
   emitByte(offset & 0xff);
 }
 
-static void emitReturn() {
-    emitByte(OP_NIL);
-    emitByte(OP_RETURN);
-}
-
 static uint8_t makeConstant(Value value) {
     int constant = addConstant(currentChunk(), value);
     if(constant > UINT8_MAX) {
@@ -208,7 +203,7 @@ static void initCompiler(Compiler * compiler, FunctionType type) {
 }
 
 static ObjFunction* endCompiler() {
-    emitReturn();
+    emitByte(OP_RETURN);
     ObjFunction* function = current->function;
 
     #ifdef DEBUG_PRINT_CODE
@@ -530,11 +525,11 @@ ParseRule rules[] = {
   [TOKEN_NIL]           = {literal,     NULL,   PREC_NONE},
   [TOKEN_OR]            = {NULL,     or_,   PREC_OR},
   [TOKEN_PRINT]         = {NULL,     NULL,   PREC_NONE},
-  [TOKEN_RETURN]        = {NULL,     NULL,   PREC_NONE},
+  [TOKEN_RETURNS]        = {NULL,     NULL,   PREC_NONE},
   [TOKEN_SUPER]         = {NULL,     NULL,   PREC_NONE},
   [TOKEN_THIS]          = {NULL,     NULL,   PREC_NONE},
   [TOKEN_TRUE]          = {literal,     NULL,   PREC_NONE},
-  [TOKEN_INPUT]         = {literal,     NULL,   PREC_NONE},
+  [TOKEN_INPUT]         = {literal,  NULL,   PREC_NONE},
   [TOKEN_VAR]           = {NULL,     NULL,   PREC_NONE},
   [TOKEN_ARRAY]         = {NULL,     NULL,   PREC_NONE},
   [TOKEN_WHILE]         = {NULL,     NULL,   PREC_NONE},
@@ -728,18 +723,13 @@ static void printStatement() {
     emitByte(OP_PRINT);
 }
 
-static void returnStatement() {
+static void returnsStatement() {
     if(current->type == TYPE_SCRIPT) {
         error("Can't return from top-level code.");
     }
-
-    if(match(TOKEN_SEMICOLON)) {
-        emitReturn();
-    } else {
-        expression();
-        consume(TOKEN_SEMICOLON, "Expect ';' after return value.");
-        emitByte(OP_RETURN);
-    }
+    expression();
+    consume(TOKEN_SEMICOLON, "Expect ';' after returns value.");
+    emitByte(OP_RETURNS);
 }
 
 static void whileStatement() {
@@ -771,7 +761,7 @@ static void synchronize() {
             case TOKEN_IF:
             case TOKEN_WHILE:
             case TOKEN_PRINT:
-            case TOKEN_RETURN:
+            case TOKEN_RETURNS:
                 return;
             default:;
         }
@@ -801,8 +791,8 @@ static void statement() {
         forStatement();
     } else if(match(TOKEN_IF)) {
         ifStatement();
-    } else if(match(TOKEN_RETURN)) {
-        returnStatement();
+    } else if(match(TOKEN_RETURNS)) {
+        returnsStatement();
     } else if(match(TOKEN_WHILE)) {
         whileStatement();
     } else if(match(TOKEN_LEFT_BRACE)) {

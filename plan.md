@@ -6,6 +6,12 @@ Order
 * String
 * Modulu operator
 
+Testing:
+* What if set value to function name
+* Return object/function from function
+* What happens to parameters when function completes?
+* Is recursion possible?
+
 - integer that can span more than u8 since memory is big (u8 u32...?)
 - character
 - array-like type

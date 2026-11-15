@@ -580,10 +580,16 @@ static InterpretResult run() {
                     return INTERPRET_RUNTIME_ERROR;
                 }
                 frame = &vm.frames[vm.frameCount -1];
+
+                // Create a cell placeholder for the return value
+                // This is not added to the vm stack since it is
+                // added when the function returns
+                printf(">");
+                frame->returns = vm.cellPointer;
+                vm.cellPointer++;
                 break;
             }
             case OP_CLOSURE: {
-                // TODO: not implemented
                 ObjFunction* function = AS_FUNCTION(READ_CONSTANT());
                 ObjClosure* closure = newClosure(function);
                 push(OBJ_VAL(closure));
@@ -599,43 +605,43 @@ static InterpretResult run() {
                 break;
             }
             case OP_CLOSE_UPVALUE:
-                // TODO: not implemented
                 closeUpvalues(vm.stackTop - 1);
                 pop();
                 break;
+            case OP_RETURNS:
+                // TODO: what if we return an object?
+                setReference(frame->returns);
+                break;
             case OP_RETURN: {
-                // TODO: not fully* implemented
-                // TODO: need to use the poped value, handle special case/common where
-                // it is a reference value than needs to be copied back.
-                pop();
+                int paramCount = frame->closure->function->arity;
+                int localCount = (vm.stackTop-frame->slots) - paramCount -1;
+
                 closeUpvalues(frame->slots);
                 vm.frameCount --;
                 if(vm.frameCount == 0) {
-                    pop();
                     return INTERPRET_OK;
                 }
-
                 vm.stackTop = frame->slots;
-                // move the cell at result location back to the current location
-                // for(int i = vm.cellPointer; i < resultLocation; i++) {
-                //     printf(">");
-                // }
-                // printf("[-");
-                // for(int i = resultLocation; i > vm.cellPointer; i--) {
-                //     printf("<");
-                // }
-                // printf("+");
-                // for(int i = vm.cellPointer; i < resultLocation; i++) {
-                //     printf(">");
-                // }
-                // printf("]");
-                // for(int i = resultLocation; i > vm.cellPointer; i--) {
-                //     printf("<");
-                // }
-                // printf(">");
-                // push(RE)
-                push(BOOL_VAL(true));
                 frame = &vm.frames[vm.frameCount -1];
+
+                // Need to move the return value to the funcPlaceholder location, clearing all params and locals
+                // [funcPlaceholder][param1][...][paramx][returnValue][local1][...][localx]>[0]
+                for(int i = 0; i < localCount; i++) {
+                    printf("<[-]");
+                    vm.cellPointer--;
+                }
+
+                // [funcPlaceholder][param1][...][paramx][returnValue]>[0]
+                pushVM(NUMBER_VAL(0)); // Since setReference pops VM
+                setReference(vm.cellPointer - 2 - paramCount);
+                // [returnValue][param1][...][paramx]>[0]
+                for(int i = 0; i < paramCount; i++) {
+                    printf("<[-]");
+                    vm.cellPointer--;
+                }
+
+                // Push the return value
+                pushVM(REFERENCE_VAL(vm.cellPointer-1));
                 break;
             }
         }

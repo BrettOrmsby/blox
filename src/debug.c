@@ -134,6 +134,8 @@ int disassembleInstruction(Chunk *chunk, int offset) {
         }
         case OP_CLOSE_UPVALUE:
             return simpleInstruction("OP_CLOSE_UPVALUE", offset);
+        case OP_RETURNS:
+            return simpleInstruction("OP_RETURNS", offset);
         case OP_RETURN:
             return simpleInstruction("OP_RETURN", offset);
         default:
