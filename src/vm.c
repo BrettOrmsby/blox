@@ -616,19 +616,18 @@ static InterpretResult run() {
                 int paramCount = frame->closure->function->arity;
                 int localCount = (vm.stackTop-frame->slots) - paramCount -1;
 
-                closeUpvalues(frame->slots);
-                vm.frameCount --;
-                if(vm.frameCount == 0) {
-                    return INTERPRET_OK;
-                }
-                vm.stackTop = frame->slots;
-                frame = &vm.frames[vm.frameCount -1];
-
                 // Need to move the return value to the funcPlaceholder location, clearing all params and locals
                 // [funcPlaceholder][param1][...][paramx][returnValue][local1][...][localx]>[0]
                 for(int i = 0; i < localCount; i++) {
                     printf("<[-]");
                     vm.cellPointer--;
+                    Value local = peekVM(i);
+                    if(IS_ARRAY(local)) {
+                        for(int i = 0; i < AS_ARRAY(local)->length-1;i++) {
+                            printf("<[-]");
+                            vm.cellPointer--;
+                        }
+                    }
                 }
 
                 // [funcPlaceholder][param1][...][paramx][returnValue]>[0]
@@ -636,9 +635,19 @@ static InterpretResult run() {
                 setReference(vm.cellPointer - 2 - paramCount);
                 // [returnValue][param1][...][paramx]>[0]
                 for(int i = 0; i < paramCount; i++) {
+                    // Do not need to handle arrays here, since
+                    // the arrays must have been declared elsewhere
                     printf("<[-]");
                     vm.cellPointer--;
                 }
+
+                closeUpvalues(frame->slots);
+                vm.frameCount --;
+                if(vm.frameCount == 0) {
+                    return INTERPRET_OK;
+                }
+                vm.stackTop = frame->slots;
+                frame = &vm.frames[vm.frameCount -1];
 
                 // Push the return value
                 pushVM(REFERENCE_VAL(vm.cellPointer-1));
