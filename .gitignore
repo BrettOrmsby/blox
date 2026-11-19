@@ -1,5 +1,5 @@
 *.o
-bf-lang
+blox
 test.bf
 /tests/*
 !/tests/*.out

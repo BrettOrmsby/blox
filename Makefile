@@ -2,13 +2,13 @@ FLAGS = -Wall -g
 SRC = src
 BUILD = build
 
-all: bf-lang
+all: blox
 
 $(BUILD):
 	mkdir -p $(BUILD)
 
-bf-lang: $(BUILD)/main.o $(BUILD)/chunk.o $(BUILD)/memory.o $(BUILD)/debug.o $(BUILD)/value.o $(BUILD)/vm.o $(BUILD)/compiler.o $(BUILD)/scanner.o $(BUILD)/object.o $(BUILD)/table.o
-	gcc $(FLAGS) -o bf-lang $(BUILD)/main.o $(BUILD)/chunk.o $(BUILD)/memory.o $(BUILD)/debug.o $(BUILD)/value.o $(BUILD)/vm.o $(BUILD)/compiler.o $(BUILD)/scanner.o $(BUILD)/object.o $(BUILD)/table.o
+blox: $(BUILD)/main.o $(BUILD)/chunk.o $(BUILD)/memory.o $(BUILD)/debug.o $(BUILD)/value.o $(BUILD)/vm.o $(BUILD)/compiler.o $(BUILD)/scanner.o $(BUILD)/object.o $(BUILD)/table.o
+	gcc $(FLAGS) -o blox $(BUILD)/main.o $(BUILD)/chunk.o $(BUILD)/memory.o $(BUILD)/debug.o $(BUILD)/value.o $(BUILD)/vm.o $(BUILD)/compiler.o $(BUILD)/scanner.o $(BUILD)/object.o $(BUILD)/table.o
 
 $(BUILD)/main.o: $(SRC)/main.c $(SRC)/chunk.h $(SRC)/vm.h $(SRC)/common.h | $(BUILD)
 	gcc $(FLAGS) -c $(SRC)/main.c -o $(BUILD)/main.o
@@ -38,4 +38,4 @@ $(BUILD)/object.o: $(SRC)/object.c $(SRC)/object.h $(SRC)/common.h $(SRC)/memory
 $(BUILD)/table.o: $(SRC)/table.c $(SRC)/table.h $(SRC)/common.h $(SRC)/value.h $(SRC)/memory.h $(SRC)/object.h | $(BUILD)
 	gcc $(FLAGS) -c $(SRC)/table.c -o $(BUILD)/table.o
 clean:
-	rm -rf $(BUILD) bf-lang
+	rm -rf $(BUILD) blox

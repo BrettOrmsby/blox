@@ -31,7 +31,7 @@ for file_in in tests/*.in; do
     printf "Testing against %s\n" "$file_in"
 
     # Run the compile pipeline
-    "./bf-lang" "$file_in" > "$file_out_bf_tst"
+    "./blox" "$file_in" > "$file_out_bf_tst"
     "./bin/bf" -c "$file_out_bf_tst"
     gcc -o "$file_out_bf_test_c_compiled" "$file_out_bf_tst_c"
     "./$file_out_bf_test_c_compiled" > "$file_out_tst"
