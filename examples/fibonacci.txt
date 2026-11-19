@@ -1,0 +1,15 @@
+// Add A to each number to make it more visible
+// Recursion does not work, it will cause a stack overflow
+fun fibonacci(n) {
+    var a = 0;
+    var b = 1;
+    for(var i = 0; i < n; i = i + 1) {
+        print 'A' + a;
+        var temp = a;
+        a = b;
+        b = b + temp;
+    }
+}
+
+// A B B C D F I N
+fibonacci(8);
