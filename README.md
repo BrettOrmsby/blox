@@ -31,7 +31,7 @@ fizzbuzz(100);
 
 ## Inspiration
 
-Blox is a passion project I worked on to practice my C programming skills. While I was at it, I decided to try out a new editor, Zed, and learn some basic Helix keybindings to use my mouse less. My project started with me following the masterfully writen [Crafting Interpreters](https://craftinginterpreters.com/) by Robert Nystrom. I stopped near the classes and set off on my own to compile a simplified set of the Lox programming language to BrainF*ck (henceforth shortened to BF). One goal I set out with was to not use any AI for debugging, asking questions, or writing code. I ended up with a semi-finished project that made a working BF to BF interpreter (check out the [example](./examples/bfinbf.txt)).
+Blox is a passion project I worked on to practice my C programming skills. While I was at it, I decided to try out a new editor, Zed, and learn some basic Helix keybindings to use my mouse less. I also set out with a goal to not use any AI for debugging, asking questions, or writing code. I started by following the masterfully writen [Crafting Interpreters](https://craftinginterpreters.com/) by Robert Nystrom. I stopped near the classes and set off on my own to compile a simplified set of the Lox programming language to BrainF*ck (henceforth shortened to BF). I ended up with a semi-finished project that made a working BF to BF interpreter (check out the [example](./examples/bfinbf.txt)).
 
 ## Getting Started
 

@@ -9,15 +9,11 @@
 
 #define IS_CLOSURE(value)  isObjType(value, OBJ_CLOSURE)
 #define IS_FUNCTION(value) isObjType(value, OBJ_FUNCTION)
-#define IS_NATIVE(value)       isObjType(value, OBJ_NATIVE) // TODO: remove
 #define IS_STRING(value) isObjType(value, OBJ_STRING)
 #define IS_ARRAY(value) isObjType(value, OBJ_ARRAY)
 
 #define AS_CLOSURE(value)  ((ObjClosure*)AS_OBJ(value))
 #define AS_FUNCTION(value)  ((ObjFunction*)AS_OBJ(value))
-// TODO: remove
-#define AS_NATIVE(value) \
-    (((ObjNative*)AS_OBJ(value))->function)
 #define AS_STRING(value)  ((ObjString*)AS_OBJ(value))
 #define AS_ARRAY(value)  ((ObjArray*)AS_OBJ(value))
 #define AS_CSTRING(value)  (((ObjString*)AS_OBJ(value))->chars)
@@ -26,7 +22,6 @@ typedef enum {
     OBJ_STRING,
     OBJ_UPVALUE,
     OBJ_FUNCTION,
-    OBJ_NATIVE, //  TODO: remove
     OBJ_CLOSURE,
     OBJ_ARRAY,
 } ObjType;
@@ -44,14 +39,6 @@ typedef struct {
     Chunk chunk;
     ObjString* name;
 } ObjFunction;
-
-// TODO: do not need native functions
-typedef Value(*NativeFn)(int argCount, Value* args);
-
-typedef struct {
-    Obj obj;
-    NativeFn function;
-} ObjNative;
 
 struct ObjString {
     Obj obj;
@@ -82,7 +69,6 @@ typedef struct {
 
 ObjClosure* newClosure(ObjFunction* function);
 ObjFunction* newFunction();
-ObjNative* newNative(NativeFn function); // TODO: remove
 ObjString* takeString(char* chars, int length);
 ObjString* copyString(const char* chars, int length);
 ObjArray* newArray(int length);

@@ -28,6 +28,8 @@ print 68 - 2; //  = 66 = B
 print 10 * 7; //  = 70 = F
 // Integer division
 print 90 / 7; //  = 12 = ␌ (Form feed character)
+// Modulus
+print 14 % 6; //  = 2  = ␂ (Start of text)
 
 // Logic
 print 1 < 3;  // 1
@@ -73,11 +75,25 @@ letters[0] = 'a';
 letters[1] = 'b';
 letters[2] = 'c';
 letters[3] = 'd';
-letters[4] = 4;       // Allowed but unsafe
-print letters;        // Prints letters[0] = a
+letters[4] = 4;       // Allowed but unsafe and might mess up the rest of the program
+print letters;        // Prints the full array = abcd
+// If an array is used anywhere but print, it is only
+// the first element
 letters[2] = letters; // Sets index 2 to letters[0]
 print letters[3];     // Prints d
 // You cannot reassign to arrays: letters = 4;
+// You cannot declare arrays in for loops or as function parameters;
+// for(array a[4];;) // Not allowed
+
+// Strings
+// A string is only used to declare an array or to print.
+array someString = "here is a multi-lined
+string";
+print someString; // Prints the full array
+print "Some string"; // Prints Some string
+// Strings cannot be used elsewhere
+// var a = "Alter"[0];     // Not allowed
+// someFunction("string"); // Not allowed
 
 // Functions (more like macros)
 // - recursion is not Allowed
