@@ -513,6 +513,24 @@ static InterpretResult run() {
                 pushVM(REFERENCE_VAL(vm.cellPointer-1));
                 break;
             case OP_PRINT:
+                if(IS_ARRAY(peekVM(0))) {
+                    // Print the entire array
+                    ObjArray *arr = AS_ARRAY(peekVM(0));
+                    int dist = vm.cellPointer - arr->cellStart;
+                    for(int i = 0; i < dist; i++) {
+                        printf("<");
+                    }
+                    for(int i = 0; i < arr->length; i++) {
+                        printf(".>");
+                    }
+                    for(int i = 0; i < dist-arr->length; i++) {
+                        printf(">");
+                    }
+                    printf("<[-]");
+                    vm.cellPointer--;
+                    popVM();
+                    break;
+                }
                 printf("<.[-]");
                 vm.cellPointer--;
                 popVM();

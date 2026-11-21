@@ -1,47 +1,33 @@
 # Blox
 
-*A simplified Lox to BrainF\*ck Compiler.*
+_A simplified Lox to BrainF\*ck Compiler._
 
 ```js
-fun fizz() {
-    print 'F';
-    print 'i';
-    print 'z';
-    print 'z';
+array a[4];
+a[0] = 'A';
+a[1] = 'B';
+a[2] = 'C';
+a[3] = 'D';
+
+fun modify(arr) {
+    print arr;
+    print arr[0];
+    print arr[1];
+    print arr[2];
+    print arr[3];
+    arr[0] = 'E';
 }
 
-fun buzz() {
-    print 'B';
-    print 'u';
-    print 'z';
-    print 'z';
+// Should not return an array, only the first element
+fun returnArr(fourthEl) {
+    array ret[5];
+    ret[3] = fourthEl;
+    ret[0] = 'F';
+    returns ret;
 }
-
-fun fizzbuzz(n) {
-    for(var i = 1; i <= n; i = i + 1) {
-        if(i % 15 == 0) {
-            fizz();
-            buzz();
-        } else if(i % 3 == 0) {
-           fizz();
-        } else if(i % 5 == 0) {
-            buzz();
-        } else {
-            if(i < 10) {
-                print '0' + i;
-            } else {
-                // Works up to 100
-                var tens = i / 10;
-                var ones = i % 10;
-                print '0' + tens;
-                print '0' + ones;
-            }
-        }
-        print 10; // \n
-    }
-}
-
-fizzbuzz(100);
+modify(a);
+print a[0];
+print(returnArr(4));
 ```
 
 ## Inspiration
@@ -53,9 +39,10 @@ Blox is a passion project I worked on to practice my C programming skills. While
 1. Clone the repo
 2. Compile the code:
 
-    ```sh
-     make
-    ```
+   ```sh
+    make
+   ```
+
 3. Run the compiler on `input.txt` to produce `output.bf`:
 
    ```sh
@@ -95,6 +82,8 @@ print 68 - 2; //  = 66 = B
 print 10 * 7; //  = 70 = F
 // Integer division
 print 90 / 7; //  = 12 = ␌ (Form feed character)
+// Modulus
+print 14 % 6; //  = 2  = ␂ (Start of text)
 
 // Logic
 print 1 < 3;  // 1
@@ -134,14 +123,16 @@ for(var i = 0; i < 9; i = i + 1) {
   print i;
 }
 
-// Arrays 
+// Arrays
 array letters[4];    // Create array of size 4
 letters[0] = 'a';
 letters[1] = 'b';
 letters[2] = 'c';
 letters[3] = 'd';
 letters[4] = 4;       // Allowed but unsafe and might mess up the rest of the program
-print letters;        // Prints letters[0] = a
+print letters;        // Prints the full array = abcd
+// If an array is used anywhere but print, it is only
+// the first element
 letters[2] = letters; // Sets index 2 to letters[0]
 print letters[3];     // Prints d
 // You cannot reassign to arrays: letters = 4;
@@ -150,7 +141,7 @@ print letters[3];     // Prints d
 // - recursion is not Allowed
 // - functions return 0 by default
 fun someFun(arg1, arg2) {
-  print arg1; 
+  print arg1;
   returns arg1; // returns sets the function return value
   print arg2;   // everything after returns still runs
   // closures are allowed

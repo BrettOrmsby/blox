@@ -1,27 +1,25 @@
-fun fizz() {
-    print 'F';
-    print 'i';
-    print 'z';
-    print 'z';
-}
+array fizz[4];
+fizz[0] = 'F';
+fizz[1] = 'i';
+fizz[2] = 'z';
+fizz[3] = 'z';
 
-fun buzz() {
-    print 'B';
-    print 'u';
-    print 'z';
-    print 'z';
-}
+array buzz[4];
+buzz[0] = 'B';
+buzz[1] = 'u';
+buzz[2] = 'z';
+buzz[3] = 'z';
 
 // Works up to 100
 fun fizzbuzz(n) {
     for(var i = 1; i <= n; i = i + 1) {
         if(i % 15 == 0) {
-            fizz();
-            buzz();
+            print fizz;
+            print buzz;
         } else if(i % 3 == 0) {
-           fizz();
+           print fizz;
         } else if(i % 5 == 0) {
-            buzz();
+            print buzz;
         } else {
             if(i < 10) {
                 print '0' + i;
