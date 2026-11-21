@@ -1,0 +1,19 @@
+array intro = "Hello, World!";
+print intro;
+
+intro[0] = 'B';
+intro[7] = 'C';
+print intro;
+
+print "Raw String";
+print "Multi
+Lined";
+
+fun printSomething(inputStr) {
+    array label = "Here is something: ";
+    print label;
+    print inputStr;
+}
+
+array something = "something";
+printSomething(something);

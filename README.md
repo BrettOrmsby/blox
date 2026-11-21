@@ -3,31 +3,30 @@
 _A simplified Lox to BrainF\*ck Compiler._
 
 ```js
-array a[4];
-a[0] = 'A';
-a[1] = 'B';
-a[2] = 'C';
-a[3] = 'D';
-
-fun modify(arr) {
-    print arr;
-    print arr[0];
-    print arr[1];
-    print arr[2];
-    print arr[3];
-    arr[0] = 'E';
+// Works up to 100
+fun fizzbuzz(n) {
+    for(var i = 1; i <= n; i = i + 1) {
+        if(i % 15 == 0) {
+            print "FizzBuzz";
+        } else if(i % 3 == 0) {
+           print "Fizz";
+        } else if(i % 5 == 0) {
+            print "Buzz";
+        } else {
+            if(i < 10) {
+                print '0' + i;
+            } else {
+                var tens = i / 10;
+                var ones = i % 10;
+                print '0' + tens;
+                print '0' + ones;
+            }
+        }
+        print 10; // \n
+    }
 }
 
-// Should not return an array, only the first element
-fun returnArr(fourthEl) {
-    array ret[5];
-    ret[3] = fourthEl;
-    ret[0] = 'F';
-    returns ret;
-}
-modify(a);
-print a[0];
-print(returnArr(4));
+fizzbuzz(100);
 ```
 
 ## Inspiration
@@ -136,6 +135,18 @@ print letters;        // Prints the full array = abcd
 letters[2] = letters; // Sets index 2 to letters[0]
 print letters[3];     // Prints d
 // You cannot reassign to arrays: letters = 4;
+// You cannot declare arrays in for loops or as function parameters;
+// for(array a[4];;) // Not allowed
+
+// Strings
+// A string is only used to declare an array or to print.
+array someString = "here is a multi-lined
+string";
+print someString; // Prints the full array
+print "Some string"; // Prints Some string
+// Strings cannot be used elsewhere
+// var a = "Alter"[0];     // Not allowed
+// someFunction("string"); // Not allowed
 
 // Functions (more like macros)
 // - recursion is not Allowed

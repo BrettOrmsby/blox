@@ -178,6 +178,7 @@ static Token string() {
 
 static Token character() {
     if(!isAtEnd() && peek() != '\'') {
+        if(peek() == '\n') scanner.line++;
         advance();
     }
     if(isAtEnd() || peek() != '\'') return errorToken("Unterminated character.");

@@ -438,10 +438,6 @@ static void or_(bool canAssign) {
     emitByte(OP_ENDIF);
 }
 
-static void string(bool canAssign) {
-    emitConstant(OBJ_VAL(copyString(parser.previous.start + 1, parser.previous.length - 2)));
-}
-
 static void character(bool canAssing) {
     if(parser.previous.length == 2) {
         emitConstant(NUMBER_VAL(0));
@@ -514,7 +510,7 @@ ParseRule rules[] = {
   [TOKEN_LESS]          = {NULL,     binary, PREC_COMPARISON},
   [TOKEN_LESS_EQUAL]    = {NULL,     binary, PREC_COMPARISON},
   [TOKEN_IDENTIFIER]    = {variable,     NULL,   PREC_NONE},
-  [TOKEN_STRING]        = {string,     NULL,   PREC_NONE},
+  [TOKEN_STRING]        = {NULL,     NULL,   PREC_NONE},
   [TOKEN_CHAR]          = {character,  NULL,   PREC_NONE},
   [TOKEN_NUMBER]        = {number,   NULL,   PREC_NONE},
   [TOKEN_AND]           = {NULL,     and_,   PREC_AND},
@@ -628,6 +624,31 @@ static void varDeclaration() {
 
 static void arrayDeclaration() {
     uint8_t global = parseVariable("Expect array name.");
+    Token arrName = parser.previous;
+
+    // You can declare an array with a string
+    if(match(TOKEN_EQUAL)) {
+        if(!match(TOKEN_STRING)) {
+            error("Expect string after array declaration.");
+            return;
+        }
+        int length = parser.previous.length - 2;
+        emitConstant(OBJ_VAL(newArray(length)));
+        defineVariable(global);
+        for(int i = 0; i < length; i++) {
+            int local = resolveLocal(current, &arrName);
+            if(local != -1) {
+                emitBytes(OP_GET_LOCAL, local);
+            } else {
+                emitBytes(OP_GET_GLOBAL, global);
+            }
+            emitConstant(NUMBER_VAL(i));
+            emitConstant(NUMBER_VAL((int)*(parser.previous.start + 1 + i)));
+            emitByte(OP_SET_ARRAY);
+        }
+        consume(TOKEN_SEMICOLON, "Expect ';' after array declaration.");
+        return;
+    }
 
     consume(TOKEN_LEFT_BRACKET, "Expect '[' after array name.");
     if(match(TOKEN_NUMBER)) {
@@ -640,7 +661,7 @@ static void arrayDeclaration() {
         error("Expect array size.");
     }
     consume(TOKEN_RIGHT_BRACKET, "Expect ']' after array size");
-    consume(TOKEN_SEMICOLON, "Expect ';' after variable declaration.");
+    consume(TOKEN_SEMICOLON, "Expect ';' after array declaration.");
 
     defineVariable(global);
 }
@@ -720,9 +741,20 @@ static void ifStatement() {
 }
 
 static void printStatement() {
-    expression();
-    consume(TOKEN_SEMICOLON, "Expect ';' after value.");
-    emitByte(OP_PRINT);
+    if(!match(TOKEN_STRING)) {
+        expression();
+        consume(TOKEN_SEMICOLON, "Expect ';' after value.");
+        emitByte(OP_PRINT);
+        return;
+    }
+
+    // Print the entire string
+    int length = parser.previous.length - 2;
+    for(int i = 0; i < length; i++) {
+        emitConstant(NUMBER_VAL((int)*(parser.previous.start + 1 + i)));
+        emitByte(OP_PRINT);
+    }
+    consume(TOKEN_SEMICOLON, "Expect ';' after printing string.");
 }
 
 static void returnsStatement() {
