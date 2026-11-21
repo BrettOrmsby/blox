@@ -1,0 +1,17 @@
+var three = 7 % 4;
+var two = 14 % 3;
+
+print 'A' + three; // D
+print 'A' + two; // C
+print 'A' + 14 % 2; // A
+
+fun printParity(n) {
+    if(n % 2 == 0) {
+        print 'E';
+    } else {
+        print 'O';
+    }
+}
+
+printParity(65);
+printParity(66);

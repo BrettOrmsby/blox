@@ -3,33 +3,61 @@
 *A simplified Lox to BrainF\*ck Compiler.*
 
 ```js
-fun fibonacciLetters(n) {
-    var a = 0;
-    var b = 1;
-    for(var i = 0; i < n; i = i + 1) {
-        print 'A' + a;
-        var temp = a;
-        a = b;
-        b = b + temp;
+fun fizz() {
+    print 'F';
+    print 'i';
+    print 'z';
+    print 'z';
+}
+
+fun buzz() {
+    print 'B';
+    print 'u';
+    print 'z';
+    print 'z';
+}
+
+fun fizzbuzz(n) {
+    for(var i = 1; i <= n; i = i + 1) {
+        if(i % 15 == 0) {
+            fizz();
+            buzz();
+        } else if(i % 3 == 0) {
+           fizz();
+        } else if(i % 5 == 0) {
+            buzz();
+        } else {
+            if(i < 10) {
+                print '0' + i;
+            } else {
+                // Works up to 100
+                var tens = i / 10;
+                var ones = i % 10;
+                print '0' + tens;
+                print '0' + ones;
+            }
+        }
+        print 10; // \n
     }
 }
 
-// A B B C D F I N
-fibonacci(8);
+fizzbuzz(100);
 ```
 
 ## Inspiration
 
-Blox is a passion project I worked on to practice my C programming skills. It started as me following the masterfully writen [Crafting Interpreters](https://craftinginterpreters.com/) by Robert Nystrom. I stopped near the classes and set off on my own to compile a simplified set of the Lox programming language to BrainF*ck (henceforth shortened to BF). One goal I set out with was to not use any AI for debugging, asking questions, or writing code. I ended up with a semi-finished project that made a working BF to BF interpreter (check out the [example](./examples/bfinbf.txt)).
+Blox is a passion project I worked on to practice my C programming skills. While I was at it, I decided to try out a new editor, Zed, and learn some basic Helix keybindings to use my mouse less. My project started with me following the masterfully writen [Crafting Interpreters](https://craftinginterpreters.com/) by Robert Nystrom. I stopped near the classes and set off on my own to compile a simplified set of the Lox programming language to BrainF*ck (henceforth shortened to BF). One goal I set out with was to not use any AI for debugging, asking questions, or writing code. I ended up with a semi-finished project that made a working BF to BF interpreter (check out the [example](./examples/bfinbf.txt)).
 
 ## Getting Started
 
 1. Clone the repo
 2. Compile the code:
+
     ```sh
      make
     ```
 3. Run the compiler on `input.txt` to produce `output.bf`:
+
    ```sh
    ./blox input.txt > output.bf
    ```

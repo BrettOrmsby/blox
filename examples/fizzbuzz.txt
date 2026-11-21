@@ -1,0 +1,39 @@
+fun fizz() {
+    print 'F';
+    print 'i';
+    print 'z';
+    print 'z';
+}
+
+fun buzz() {
+    print 'B';
+    print 'u';
+    print 'z';
+    print 'z';
+}
+
+// Works up to 100
+fun fizzbuzz(n) {
+    for(var i = 1; i <= n; i = i + 1) {
+        if(i % 15 == 0) {
+            fizz();
+            buzz();
+        } else if(i % 3 == 0) {
+           fizz();
+        } else if(i % 5 == 0) {
+            buzz();
+        } else {
+            if(i < 10) {
+                print '0' + i;
+            } else {
+                var tens = i / 10;
+                var ones = i % 10;
+                print '0' + tens;
+                print '0' + ones;
+            }
+        }
+        print 10; // \n
+    }
+}
+
+fizzbuzz(100);

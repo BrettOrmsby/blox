@@ -492,6 +492,16 @@ static InterpretResult run() {
                 popVM();
                 pushVM(REFERENCE_VAL(vm.cellPointer-1));
             break;
+            case OP_MODULUS:
+                /*
+                 * See above. We are just using a differnt output
+                 */
+                printf("+<<[->-[>+>>]>[[-<+>]+>+>>]<<<<<]>>[-<<+>>]>[-]<<[-]<->");
+                vm.cellPointer--;
+                popVM();
+                popVM();
+                pushVM(REFERENCE_VAL(vm.cellPointer-1));
+            break;
             case OP_NOT:
                 /* [operand][result]
                     +          // Set result to 1
